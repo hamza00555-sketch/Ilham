@@ -46,7 +46,7 @@ Firebase → Firestore (البيانات، realtime) · Auth                    
 |---|---|---|
 | **ليش مو Blaze** | Cloud Functions تحتاج Blaze، و Cloud Storage صار يحتاجها بعد من 3 فبراير 2026 | ما نستخدمهم. كل شي يحتاج سيرفر يشتغل على Vercel |
 | **السقف بدل الفاتورة** | Spark و Vercel Hobby و Blob Hobby كلها مجانية بسقف: لو خلصت الكوتا تتوقف الخدمة، ما تنسحب فلوس | نراقب الاستهلاك من لوحات Firebase و Vercel |
-| **Email link** | على Spark بس **5 إيميلات دخول باليوم** | Google هو طريق الدخول الأساسي |
+| **Email link** | على Spark بس **5 إيميلات دخول باليوم** | Google هو طريق الدخول. الإيميل اختياري (`NEXT_PUBLIC_EMAIL_SIGN_IN`) |
 | **المنطقة** | مكان Firestore **ما يتغير بعدين**، والمتصفح يكلمه أكثر من السيرفر بكثير | `me-central2` (الدمام) أقرب شي لمستخدم في الخليج. المعالجة على Vercel تتحمل المسافة لأنها تشتغل بالخلفية |
 | **الجدولة** | Vercel Cron على Hobby يشتغل مرة وحدة باليوم | job يومي واحد يكفي لكل المشاريع |
 | **Vercel Hobby** | للاستخدام الشخصي غير التجاري | لو صار شغل استوديو تجاري: Vercel Pro |
@@ -195,7 +195,7 @@ service cloud.firestore {
 
 > ما فيه `storage.rules`: البريفيوهات في Vercel Blob بروابط عامة عشوائية (مثل download tokens)، والرفع يمر من `/api/ingest` بعد التحقق من الـ ID token.
 
-**Auth:** Google Sign-In (ضغطة وحدة) + Email link احتياط (5 إيميلات باليوم على Spark). `ILHAM_ALLOWED_EMAILS` على Vercel يحدد مين يقدر يستخدم المعالجة.
+**Auth:** Google Sign-In (ضغطة وحدة). Email link اختياري (5 إيميلات باليوم على Spark). `ILHAM_ALLOWED_EMAILS` على Vercel يحدد مين يقدر يستخدم المعالجة.
 
 ---
 
@@ -449,7 +449,7 @@ ilham/
 
 ### Phase 0 — Foundation · ✅ الكود جاهز (باقي الإعداد من عندك: [`DEPLOY.md`](DEPLOY.md))
 - Firebase project على **Spark** (مجاني، بدون بطاقة)، و Firestore في `us-central1`
-- تفعيل Firestore و Auth (Google + Email link)، و Blob store على Vercel
+- تفعيل Firestore و Auth (Google)، و Blob store على Vercel
 - Emulators + Firebase MCP
 - Next.js + TS + Tailwind + shadcn على Vercel، و env vars (Firebase config + service account)
 - Design tokens (dark/light + RTL)

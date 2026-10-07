@@ -28,16 +28,14 @@
    - ⚠️ المكان **ما يتغير بعدين أبد**.
 4. اختار **Start in production mode** ← **Create**. القواعد الصح بتنرفع في خطوة 5.
 
-### 3. فعّل تسجيل الدخول
+### 3. فعّل تسجيل الدخول بـ Google
 
 1. من القائمة: **Security ← Authentication ← Get started**. ما لقيته؟ اكتب `Authentication` في **Search for products**.
 2. **Sign-in method ← Google ← Enable**. اختار إيميلك في **Project support email** ← **Save**.
-3. **Add new provider ← Email/Password**:
-   - فعّل **Email/Password**.
-   - وفعّل تحته **Email link (passwordless sign-in)**.
-   - ← **Save**.
 
-> على Spark، الدخول بالإيميل محدود بـ **5 رسائل باليوم**. Google هو الطريق الأساسي.
+تسجّل دخول مرة وحدة في كل جهاز، وبعدها يتذكرك.
+
+> **اختياري، الدخول برابط على الإيميل:** فعّل **Email/Password** وتحته **Email link (passwordless sign-in)**، وأضف `NEXT_PUBLIC_EMAIL_SIGN_IN=true` في Vercel. على Spark محدود بـ 5 رسائل باليوم.
 
 ### 4. خذ مفتاح السيرفر (Service account)
 
@@ -93,7 +91,7 @@ npm run deploy:firebase      # يرفع firestore.rules و firestore.indexes.jso
 | `NEXT_PUBLIC_FIREBASE_MESSAGING_SENDER_ID` | من نفس الـ Config |
 | `NEXT_PUBLIC_FIREBASE_APP_ID` | من نفس الـ Config |
 | `FIREBASE_SERVICE_ACCOUNT` | افتح ملف الـ JSON من خطوة 4، وانسخ **كل** محتواه والصقه هنا |
-| `ILHAM_ALLOWED_EMAILS` | إيميل Google اللي بتدخل فيه. لو أكثر من واحد: `a@x.com,b@y.com` |
+| `ILHAM_ALLOWED_EMAILS` | إيميل Google اللي بتدخل فيه. لو أكثر من واحد: `a@x.com,b@y.com`. أي حساب Google يقدر يسجل، بس بياناتك ما يشوفها غيرك، وهذا يمنعهم يستخدمون معالجة الروابط على حسابك |
 
 لا تضيف `NEXT_PUBLIC_USE_EMULATORS`. هذا للتجربة المحلية بس.
 
@@ -154,6 +152,6 @@ npm run deploy:firebase      # يرفع firestore.rules و firestore.indexes.jso
 | Firestore (Spark) | 1 GiB · 50K قراءة و 20K كتابة باليوم | استخدام يومي ثقيل لشخص أو فريق صغير |
 | Vercel Blob (Hobby) | 1 GB · 10 GB نقل · 2,000 رفع بالشهر | ~6,000 مرجع مخزن، و ~1,000 مرجع جديد بالشهر |
 | Vercel Functions (Hobby) | ضمن حصة حسابك | طلب واحد لكل مرجع |
-| Auth | Google بدون حد عملي · Email link 5 باليوم | — |
+| Auth | Google بدون حد عملي · Email link (اختياري) 5 باليوم | — |
 
 > Vercel Hobby للاستخدام الشخصي. لو صار إلهام أداة شغل تجاري لاستوديو، انقل المشروع لـ Vercel Pro.

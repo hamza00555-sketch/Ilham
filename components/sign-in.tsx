@@ -9,6 +9,9 @@ import { Button } from "./ui/button";
 import { GoogleMark, Spark, Wordmark } from "./ui/brand";
 import { inputClass } from "./ui/dialog";
 
+// Email link is opt-in: on the free Spark plan it's capped at 5 emails a day.
+const emailSignIn = process.env.NEXT_PUBLIC_EMAIL_SIGN_IN === "true";
+
 // Moodboard-like tiles drifting behind the sign-in card.
 const TILES = [
   ["#1d3b53", "#0f1c2a"],
@@ -128,14 +131,16 @@ export function SignIn() {
               <GoogleMark />
               المتابعة بـ Google
             </Button>
-            <button
-              type="button"
-              onClick={() => setEmailMode(true)}
-              className="inline-flex min-h-11 items-center gap-1.5 px-3 text-sm text-ink-muted transition hover:text-ink"
-            >
-              أو برابط على الإيميل
-              <ArrowLeft className="size-3.5" />
-            </button>
+            {emailSignIn ? (
+              <button
+                type="button"
+                onClick={() => setEmailMode(true)}
+                className="inline-flex min-h-11 items-center gap-1.5 px-3 text-sm text-ink-muted transition hover:text-ink"
+              >
+                أو برابط على الإيميل
+                <ArrowLeft className="size-3.5" />
+              </button>
+            ) : null}
           </div>
         )}
       </div>
