@@ -69,6 +69,8 @@ spacing:
   grid-gap-desktop: "20px"
   row-gap-phone: "24px"
   row-gap-desktop: "32px"
+  bento-gap-phone: "10px"
+  bento-gap-desktop: "14px"
 components:
   button-primary:
     backgroundColor: "{colors.ink}"
@@ -126,7 +128,7 @@ The table is for working, not browsing: projects are boards a team builds over t
 
 **Key Characteristics:**
 - Dark tonal sheets with white hairlines; color comes only from the work.
-- A 4:3 reference grid (2 → 3 → 4 → 5 columns), each preview on its own dominant color.
+- A bento board where each reference takes the tile its shape asks for, each preview on its own dominant color.
 - One signal color, Signal Lime, reserved for anything an agent touched.
 - RTL Arabic interface with English titles that keep their own direction.
 - Living previews for motion references: muted, single, revealed only when actually playing.
@@ -179,7 +181,7 @@ A near-black neutral table with three stepped sheets, three ink levels, and one 
 
 Two-pane on desktop: a 256px sidebar at the start edge (right) holding Add, navigation and the project list, and a fluid board. Phones drop the sidebar for a bottom bar with a central Add button in the thumb zone.
 
-The reference grid is the core: 2 columns on phones, 3 from 768px, 4 from 1280px, 5 from 1536px. Gutters are 16px on phones and 40px on desktop; column gaps 12px → 20px, row gaps 24px → 32px, so each caption stays attached to its own card. Project covers use the same 4:3 frame in a 2 → 3 → 4 column grid. Headers align titles at the start edge and actions at the end edge, bottom-aligned to the title.
+The project board is a bento (`lib/bento.ts`): 4:3 cells in 2 columns on phones, 4 from a 560px board, 6 from 900px, 8 from 1500px, with 10px gaps on phones and 14px above. Each work takes the tile its shape asks for: wide (2×1) for video and anything 1.6:1 or wider, tall (1×2) for 0.85:1 or narrower, small (1×1) otherwise. Big (2×2) heroes open the board and then come roughly every nine references (never closer than six, never further than twelve), only for sharp, not-too-tall images, chosen by id so they stay put as the board grows. Tiles pack without gaps, and the last few are resized when needed so the last row closes. The biggest tile is a third of a laptop board; the smallest stays about 170px wide. The Inbox keeps a uniform 4:3 grid (2 → 3 → 4 → 5 columns, gaps 12px → 20px, rows 24px → 32px) because each pick carries its reason and decision under it. Gutters are 16px on phones and 40px on desktop. Project covers use the 4:3 frame in a 2 → 3 → 4 column grid. Headers align titles at the start edge and actions at the end edge, bottom-aligned to the title.
 
 Filters appear only when a board has at least 6 references from 2 or more platforms. On phones the chip row scrolls horizontally and fades at its end edge to show there is more.
 
@@ -215,13 +217,13 @@ Gently rounded and consistent: references and covers at 10px, fields and menus a
 
 ### Reference Cards
 - **Corner Style:** 10px.
-- **Background:** the preview's dominant color under a blurred LQIP, and the WebP fading in on top. Very wide OG images (wider than 1.85:1) are contained on the dominant color instead of cropped.
+- **Background:** the preview's dominant color under a blurred LQIP, and the WebP fading in on top. In the Inbox grid, very wide OG images (wider than 1.85:1) are contained on the dominant color instead of cropped; bento tiles always fill, since their shape already follows the work.
 - **Shadow Strategy:** none (see the Hairline Rule).
 - **States:** pending shows a shimmer with a thin scanning bar and the host name. Failed shows a fallback tile tinted with the platform color, its label and title, and an "أضف بريفيو" action. Ready shows the work.
 - **Hover (desktop):** the image scales to 1.02 (300ms). No overlay text: the caption below already carries title and byline.
 - **Click:** opens the Reference Sheet (⌘/Ctrl-click opens it in a new tab). The source is one tap further, from the sheet or the menu.
 - **Badges (top start):** ✦ for agent picks, ▶ for motion, and a note count that turns Signal Lime when the latest note is an agent's.
-- **Caption:** platform dot, title, byline at the end edge.
+- **Caption:** in the Inbox grid, platform dot, title, byline at the end edge, below the card. On the bento board the tile is the work alone; title and byline rise over its foot on hover or focus (no caption on touch, where a tap opens the sheet).
 - **Menu:** a quiet 28px dot inside a 44px hit area at the top end corner; on desktop it appears on hover or focus.
 
 ### Living Preview (signature)

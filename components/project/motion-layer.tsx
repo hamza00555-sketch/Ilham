@@ -13,7 +13,8 @@ const PLAYER_ORIGINS = {
  * The card's living preview, laid over the still. It becomes visible only once the player itself
  * reports playback, so an embed that is blocked, slow or erroring never covers the poster.
  */
-export function MotionLayer({ source }: { source: MotionSource }) {
+/** `className` places the layer over the work (default: the grid card's 4:3 frame). */
+export function MotionLayer({ source, className }: { source: MotionSource; className?: string }) {
   const [playing, setPlaying] = useState(false);
   const frame = useRef<HTMLIFrameElement>(null);
 
@@ -65,7 +66,8 @@ export function MotionLayer({ source }: { source: MotionSource }) {
     <span
       aria-hidden
       className={cn(
-        "pointer-events-none absolute inset-x-0 top-0 aspect-[4/3] overflow-hidden rounded-card bg-black transition-opacity duration-300 ease-out",
+        "pointer-events-none absolute overflow-hidden rounded-card bg-black transition-opacity duration-300 ease-out [container-type:size]",
+        className ?? "inset-x-0 top-0 aspect-[4/3]",
         playing ? "opacity-100" : "opacity-0",
       )}
     >
@@ -89,8 +91,9 @@ export function MotionLayer({ source }: { source: MotionSource }) {
           allow="autoplay; encrypted-media; picture-in-picture"
           referrerPolicy="strict-origin-when-cross-origin"
           onLoad={subscribe}
-          // 16:9 player over a 4:3 card: oversize and center it to crop the player's own chrome.
-          className="absolute top-1/2 left-1/2 h-[118%] w-[157%] max-w-none -translate-x-1/2 -translate-y-1/2 border-0"
+          // A 16:9 player covering a frame of any shape (container units), oversized by 18% and
+          // centered to crop the player's own chrome.
+          className="absolute top-1/2 left-1/2 h-[calc(max(100cqh,56.25cqw)*1.18)] w-[calc(max(100cqw,177.78cqh)*1.18)] max-w-none -translate-x-1/2 -translate-y-1/2 border-0"
         />
       )}
     </span>

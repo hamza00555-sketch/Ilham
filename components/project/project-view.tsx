@@ -15,6 +15,7 @@ import type { Platform } from "@/shared/types";
 import { useShell } from "../shell/shell-context";
 import { Button } from "../ui/button";
 import { Spark } from "../ui/brand";
+import { BentoBoard } from "./bento-board";
 import { ItemCard } from "./item-card";
 import { ItemDetail } from "./item-detail";
 import { ProjectMenu } from "./project-menu";
@@ -138,13 +139,7 @@ function KeptView({ project }: { project: ProjectDoc }) {
         <EmptyBoard onAdd={() => openAdd({ projectId: project.id })} />
       ) : (
         <>
-          <Grid>
-            <AnimatePresence initial={false}>
-              {visible?.map((item: ItemDoc, i) => (
-                <ItemCard key={item.id} item={item} index={i} />
-              ))}
-            </AnimatePresence>
-          </Grid>
+          <BentoBoard items={visible ?? []} />
           {hasMore ? <Sentinel onVisible={loadMore} busy={loadingMore} /> : null}
         </>
       )}
