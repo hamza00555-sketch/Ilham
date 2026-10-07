@@ -127,6 +127,18 @@ npm run deploy:firebase      # يرفع firestore.rules و firestore.indexes.jso
 
 ---
 
+### 11. الدخول من الجوال والمتصفحات اللي داخل التطبيقات
+
+Safari في الجوال، والمتصفحات اللي داخل التطبيقات، والموقع لما تضيفه للشاشة الرئيسية: كلها تعزل التخزين بين المواقع. فلو صفحة الدخول على `firebaseapp.com` يطلع خطأ `missing initial state`. الحل إن صفحة الدخول تشتغل من دومين الموقع نفسه (الكود يمرّرها عبر `/__/auth/`):
+
+1. [Google Cloud ← Credentials](https://console.cloud.google.com/apis/credentials?project=ilham-e2e04) ← **OAuth 2.0 Client IDs** ← **Web client (auto created by Google Service)**.
+2. تحت **Authorized redirect URIs** اضغط **Add URI** والصق: `https://ilham-psi-lake.vercel.app/__/auth/handler` ← **Save**.
+3. **بعدها** في Vercel غيّر `NEXT_PUBLIC_FIREBASE_AUTH_DOMAIN` إلى `ilham-psi-lake.vercel.app` ← **Redeploy**.
+
+⚠️ الترتيب مهم: لو غيّرت المتغير قبل خطوة 2، Google يرفض الدخول (`redirect_uri_mismatch`).
+
+---
+
 ## د. جرّب
 
 1. افتح الدومين ← **المتابعة بـ Google**.
