@@ -17,11 +17,12 @@
 ### 1. تأكد إن المشروع على Spark
 
 1. افتح [console.firebase.google.com](https://console.firebase.google.com) واختار مشروع **ilham-e2e04**.
-2. تحت يسار الصفحة لازم تشوف **Spark**. لا تضغط **Upgrade**.
+2. تحت يسار الصفحة لازم تشوف **Spark · No-cost ($0/month)**. لا تضغط **Upgrade**.
+3. لا تفتح **Storage** ولا **SQL Connect**. ما نحتاجهم، و Storage بيطلب منك Blaze.
 
 ### 2. أنشئ قاعدة Firestore
 
-1. من القائمة: **Build ← Firestore Database ← Create database**.
+1. من القائمة: **Databases & Storage ← Firestore ← Create database**.
 2. لو سألك عن الـ edition، اختار **Standard edition**.
 3. **Location:** اختار **`me-central2 (Dammam)`**، لأنه أقرب شي للخليج.
    - ⚠️ المكان **ما يتغير بعدين أبد**.
@@ -29,7 +30,7 @@
 
 ### 3. فعّل تسجيل الدخول
 
-1. من القائمة: **Build ← Authentication ← Get started**.
+1. من القائمة: **Security ← Authentication ← Get started**. ما لقيته؟ اكتب `Authentication` في **Search for products**.
 2. **Sign-in method ← Google ← Enable**. اختار إيميلك في **Project support email** ← **Save**.
 3. **Add new provider ← Email/Password**:
    - فعّل **Email/Password**.
@@ -50,10 +51,10 @@
 
 **الطريقة الأسهل (من الـ console، بدون terminal):**
 
-1. **Firestore Database ← Rules**:
+1. **Firestore ← Rules**:
    - امسح الموجود، والصق محتوى ملف [`firestore.rules`](../firestore.rules) من الريبو.
    - ← **Publish**.
-2. **Firestore Database ← Indexes ← Composite ← Create index**:
+2. **Firestore ← Indexes ← Composite ← Create index**:
    - **Collection ID:** `items`
    - **Fields:** `projectId` Ascending · `status` Ascending · `addedAt` Descending
    - **Query scope:** Collection
