@@ -14,10 +14,12 @@ import {
   setDoc,
   updateDoc,
   where,
+  writeBatch,
   type DocumentData,
 } from "firebase/firestore";
 import { useEffect, useState } from "react";
-import { canonicalizeUrl, detectPlatform, extractUrl, hashUrl, titleFromUrl } from "@/shared/normalize";
+import { canonicalizeUrl, hashUrl } from "@/shared/normalize";
+import { buildItem } from "@/shared/items";
 import { itemId, type AddedBy, type IngestHints, type Item, type ItemStatus } from "@/shared/types";
 import { callApi } from "../api";
 import { firebase } from "../firebase/client";
@@ -85,37 +87,8 @@ export async function addItem(
   input: string,
   opts: { hints?: IngestHints; addedBy?: AddedBy } = {},
 ): Promise<AddResult> {
-  const sourceUrl = extractUrl(input) ?? input;
-  const canonicalUrl = canonicalizeUrl(input);
-  const urlHash = await hashUrl(canonicalUrl);
-  const id = itemId(projectId, urlHash);
+  const { id, item } = await buildItem(projectId, input, opts);
   const ref = doc(itemsCol(uid), id);
-  const addedBy = opts.addedBy ?? "user";
-  const hints = cleanHints(opts.hints);
-
-  const item: Omit<Item, "addedAt" | "updatedAt"> = {
-    projectId,
-    urlHash,
-    sourceUrl,
-    canonicalUrl,
-    platform: detectPlatform(canonicalUrl),
-    mediaType: "image",
-    title: hints?.title ?? titleFromUrl(canonicalUrl),
-    authorName: null,
-    authorUrl: null,
-    preview: null,
-    colorBuckets: [],
-    searchTokens: [],
-    tags: [],
-    status: addedBy === "agent" ? "inbox" : "kept",
-    ingest: "queued",
-    ingestError: null,
-    hints,
-    addedBy,
-    agentRunId: null,
-    reason: null,
-    note: null,
-  };
 
   const status = await runTransaction(firebase().db, async (tx) => {
     const existing = await tx.get(ref);
@@ -125,15 +98,6 @@ export async function addItem(
   });
   if (status === "added") kickIngest(uid, id);
   return { status, id };
-}
-
-function cleanHints(hints?: IngestHints): IngestHints | null {
-  if (!hints) return null;
-  const out: IngestHints = {};
-  if (hints.imageUrl && /^https?:\/\//i.test(hints.imageUrl)) out.imageUrl = hints.imageUrl;
-  if (hints.videoUrl && /^https?:\/\//i.test(hints.videoUrl)) out.videoUrl = hints.videoUrl;
-  if (hints.title?.trim()) out.title = hints.title.trim().slice(0, 200);
-  return Object.keys(out).length ? out : null;
 }
 
 const touch = { updatedAt: serverTimestamp() };
@@ -213,6 +177,19 @@ async function shrinkForUpload(file: File): Promise<Blob> {
   return new Promise((resolve, reject) =>
     canvas.toBlob((b) => (b ? resolve(b) : reject(new Error("encode"))), "image/jpeg", 0.9),
   );
+}
+
+/** Inbox decisions: keep moves an agent pick into the project, discard hides it (and teaches taste). */
+export async function setItemStatus(uid: string, item: ItemDoc, status: ItemStatus) {
+  await updateDoc(doc(itemsCol(uid), item.id), { status, ...touch });
+  syncProjects([item.projectId]);
+}
+
+export async function keepAll(uid: string, items: ItemDoc[]) {
+  const batch = writeBatch(firebase().db);
+  for (const item of items) batch.update(doc(itemsCol(uid), item.id), { status: "kept", ...touch });
+  await batch.commit();
+  syncProjects(items.map((i) => i.projectId));
 }
 
 export async function deleteItem(uid: string, id: string) {

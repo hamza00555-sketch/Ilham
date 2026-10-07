@@ -2,7 +2,7 @@
 
 import { ArrowUpRight, ImagePlus, Play } from "lucide-react";
 import { motion } from "motion/react";
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useRef, useState, type ReactNode } from "react";
 import type { ItemDoc } from "@/lib/data/items";
 import { claimMotion, releaseMotion, useCanHover, useIsMotionActive, useMotionAllowed } from "@/lib/motion";
 import { cn, PLATFORMS } from "@/lib/ui";
@@ -17,7 +17,7 @@ const SIZES = "(min-width: 1536px) 20vw, (min-width: 1280px) 25vw, (min-width: 7
 /** Hover must settle briefly before a card comes alive, so sweeping the cursor across the grid stays calm. */
 const HOVER_DWELL_MS = 280;
 
-export function ItemCard({ item, index }: { item: ItemDoc; index: number }) {
+export function ItemCard({ item, index, children }: { item: ItemDoc; index: number; children?: ReactNode }) {
   const [loadedSrc, setLoadedSrc] = useState<string>();
   const [previewOpen, setPreviewOpen] = useState(false);
   const platform = PLATFORMS[item.platform] ?? PLATFORMS.web;
@@ -154,6 +154,8 @@ export function ItemCard({ item, index }: { item: ItemDoc; index: number }) {
           </span>
         ) : null}
       </div>
+
+      {children}
 
       <ItemMenu
         item={item}

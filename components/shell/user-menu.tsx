@@ -1,6 +1,7 @@
 "use client";
 
-import { Bookmark, LogOut } from "lucide-react";
+import { Bookmark, KeyRound, LogOut } from "lucide-react";
+import { useRouter } from "next/navigation";
 import { useState, type ReactNode } from "react";
 import { signOut, useAuth } from "@/lib/auth";
 import { Menu, MenuContent, MenuItem, MenuSeparator, MenuTrigger } from "../ui/menu";
@@ -8,6 +9,7 @@ import { BookmarkletDialog } from "./bookmarklet-dialog";
 
 export function UserMenu({ children, align = "start" }: { children: ReactNode; align?: "start" | "end" }) {
   const { user } = useAuth();
+  const router = useRouter();
   const [bookmarklet, setBookmarklet] = useState(false);
 
   return (
@@ -24,6 +26,9 @@ export function UserMenu({ children, align = "start" }: { children: ReactNode; a
           <MenuSeparator />
           <MenuItem icon={<Bookmark />} onSelect={() => setBookmarklet(true)}>
             أضف من أي موقع
+          </MenuItem>
+          <MenuItem icon={<KeyRound />} onSelect={() => router.push("/settings")}>
+            مفاتيح الوكلاء
           </MenuItem>
           <MenuItem icon={<LogOut />} onSelect={() => void signOut()}>
             تسجيل خروج

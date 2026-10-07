@@ -1,11 +1,12 @@
 "use client";
 
-import { ChevronRight, Link2, Plus } from "lucide-react";
+import { Check, ChevronRight, Link2, Plus, X } from "lucide-react";
 import { AnimatePresence } from "motion/react";
 import Link from "next/link";
 import { useParams } from "next/navigation";
 import { useEffect, useMemo, useRef, useState } from "react";
-import { useItems, useResumeIngest, type ItemDoc, type QueryError } from "@/lib/data/items";
+import { toast } from "sonner";
+import { keepAll, setItemStatus, useItems, useResumeIngest, type ItemDoc, type QueryError } from "@/lib/data/items";
 import { friendlyError } from "@/lib/errors";
 import { usePasteShortcut } from "@/lib/keys";
 import type { ProjectDoc } from "@/lib/data/projects";
@@ -13,6 +14,7 @@ import { cn, countLabel, PLATFORMS } from "@/lib/ui";
 import type { Platform } from "@/shared/types";
 import { useShell } from "../shell/shell-context";
 import { Button } from "../ui/button";
+import { Spark } from "../ui/brand";
 import { ItemCard } from "./item-card";
 import { ProjectMenu } from "./project-menu";
 
@@ -32,19 +34,10 @@ export function ProjectView() {
 }
 
 function ProjectBoard({ project }: { project: ProjectDoc }) {
-  const { uid, openAdd } = useShell();
-  const { items, error, hasMore, loadMore, loadingMore } = useItems(uid, project.id);
-  useResumeIngest(uid, items);
-  const [filter, setFilter] = useState<Platform | "all">("all");
-
-  const platforms = useMemo(() => {
-    const counts = new Map<Platform, number>();
-    items?.forEach((i) => counts.set(i.platform, (counts.get(i.platform) ?? 0) + 1));
-    return [...counts.entries()].sort((a, b) => b[1] - a[1]);
-  }, [items]);
-
-  const visible = filter === "all" ? items : items?.filter((i) => i.platform === filter);
-  const total = project.counts?.kept ?? items?.length ?? 0;
+  const { openAdd } = useShell();
+  const inboxCount = project.counts?.inbox ?? 0;
+  const keptCount = project.counts?.kept ?? 0;
+  const [tab, setTab] = useState<"kept" | "inbox">("kept");
 
   return (
     <div className="pt-5 md:pt-10">
@@ -62,7 +55,7 @@ function ProjectBoard({ project }: { project: ProjectDoc }) {
               {project.name}
             </h1>
             <p className="mt-2 text-sm text-ink-muted">
-              {countLabel(total)}
+              {countLabel(keptCount)}
               {project.description ? <span className="text-ink-faint"> · {project.description}</span> : null}
             </p>
           </div>
@@ -76,25 +69,65 @@ function ProjectBoard({ project }: { project: ProjectDoc }) {
           </div>
         </div>
 
-        {/* Filters earn their place only once a board is big and varied enough to need them. */}
-        {platforms.length > 1 && (items?.length ?? 0) >= 6 ? (
-          <div
-            role="group"
-            aria-label="فلترة حسب المنصة"
-            className="scrollbar-none -mx-4 mt-5 flex gap-2 overflow-x-auto px-4 py-1.5 [mask-image:linear-gradient(to_left,transparent,black_28px)] md:mx-0 md:px-0 md:[mask-image:none]"
-          >
-            <Chip active={filter === "all"} onClick={() => setFilter("all")}>
-              الكل
+        {/* The Inbox only takes space when an agent has left something in it. */}
+        {inboxCount > 0 || tab === "inbox" ? (
+          <div role="tablist" aria-label="عرض المشروع" className="mt-5 flex gap-2">
+            <Chip active={tab === "kept"} onClick={() => setTab("kept")} role="tab">
+              المراجع
+              <span className={cn("tabular-nums", tab === "kept" ? "text-canvas/60" : "text-ink-faint")}>{keptCount}</span>
             </Chip>
-            {platforms.map(([p, n]) => (
-              <Chip key={p} active={filter === p} onClick={() => setFilter(p)} color={PLATFORMS[p].color}>
-                {PLATFORMS[p].label}
-                <span className="text-ink-faint tabular-nums">{n}</span>
-              </Chip>
-            ))}
+            <Chip active={tab === "inbox"} onClick={() => setTab("inbox")} role="tab">
+              <Spark className={cn("size-3", tab === "inbox" ? "text-canvas" : "text-signal")} />
+              الوارد
+              <span className={cn("tabular-nums", tab === "inbox" ? "text-canvas/60" : "text-signal")}>{inboxCount}</span>
+            </Chip>
           </div>
         ) : null}
       </header>
+
+      {tab === "inbox" ? (
+        <InboxView project={project} onBack={() => setTab("kept")} />
+      ) : (
+        <KeptView project={project} />
+      )}
+    </div>
+  );
+}
+
+function KeptView({ project }: { project: ProjectDoc }) {
+  const { uid, openAdd } = useShell();
+  const { items, error, hasMore, loadMore, loadingMore } = useItems(uid, project.id);
+  useResumeIngest(uid, items);
+  const [filter, setFilter] = useState<Platform | "all">("all");
+
+  const platforms = useMemo(() => {
+    const counts = new Map<Platform, number>();
+    items?.forEach((i) => counts.set(i.platform, (counts.get(i.platform) ?? 0) + 1));
+    return [...counts.entries()].sort((a, b) => b[1] - a[1]);
+  }, [items]);
+
+  const visible = filter === "all" ? items : items?.filter((i) => i.platform === filter);
+
+  return (
+    <>
+      {/* Filters earn their place only once a board is big and varied enough to need them. */}
+      {platforms.length > 1 && (items?.length ?? 0) >= 6 ? (
+        <div
+          role="group"
+          aria-label="فلترة حسب المنصة"
+          className="scrollbar-none mt-5 flex gap-2 overflow-x-auto px-4 py-1.5 [mask-image:linear-gradient(to_left,transparent,black_28px)] md:px-10 md:[mask-image:none]"
+        >
+          <Chip active={filter === "all"} onClick={() => setFilter("all")}>
+            الكل
+          </Chip>
+          {platforms.map(([p, n]) => (
+            <Chip key={p} active={filter === p} onClick={() => setFilter(p)} color={PLATFORMS[p].color}>
+              {PLATFORMS[p].label}
+              <span className="text-ink-faint tabular-nums">{n}</span>
+            </Chip>
+          ))}
+        </div>
+      ) : null}
 
       {error ? (
         <BoardError error={error} />
@@ -114,6 +147,100 @@ function ProjectBoard({ project }: { project: ProjectDoc }) {
           {hasMore ? <Sentinel onVisible={loadMore} busy={loadingMore} /> : null}
         </>
       )}
+    </>
+  );
+}
+
+/** Agent picks wait here: keep what fits, discard the rest (discards teach get_taste). */
+function InboxView({ project, onBack }: { project: ProjectDoc; onBack: () => void }) {
+  const { uid } = useShell();
+  const { items, error, hasMore, loadMore, loadingMore } = useItems(uid, project.id, "inbox");
+  useResumeIngest(uid, items);
+  const [keeping, setKeeping] = useState(false);
+
+  const keepEverything = async () => {
+    if (!items?.length) return;
+    setKeeping(true);
+    try {
+      await keepAll(uid, items);
+      toast(`انضاف ${countLabel(items.length)} للمشروع`);
+    } catch (err) {
+      toast.error("ما قدرنا نحفظها", { description: friendlyError(err) });
+    } finally {
+      setKeeping(false);
+    }
+  };
+
+  if (error) return <BoardError error={error} />;
+  if (items === undefined) return <GridSkeleton bare />;
+  if (!items.length) {
+    return (
+      <div className="mx-4 mt-8 grid place-items-center rounded-3xl border border-dashed border-line-strong px-6 py-16 text-center md:mx-10">
+        <span className="grid size-12 place-items-center rounded-full bg-raised text-signal">
+          <Spark className="size-5" />
+        </span>
+        <h2 className="mt-5 font-arabic text-xl font-semibold">الوارد فاضي</h2>
+        <p className="mt-2 max-w-sm text-sm leading-6 text-ink-muted">
+          لما يضيف وكيل مراجع لهذا المشروع، توصل هنا تنتظر قرارك.
+        </p>
+        <Button variant="secondary" className="mt-6" onClick={onBack}>
+          ارجع للمراجع
+        </Button>
+      </div>
+    );
+  }
+
+  return (
+    <>
+      <div className="mt-5 flex items-center justify-between gap-4 px-4 md:px-10">
+        <p className="text-sm text-ink-muted">اقتراحات الوكيل. احتفظ باللي يعجبك، والباقي ارمِه عشان يتعلم ذوقك.</p>
+        <Button variant="secondary" size="sm" className="shrink-0 max-md:h-11" onClick={() => void keepEverything()} disabled={keeping}>
+          <Check className="size-3.5" />
+          احتفظ بالكل
+        </Button>
+      </div>
+      <Grid>
+        <AnimatePresence initial={false}>
+          {items.map((item, i) => (
+            <ItemCard key={item.id} item={item} index={i}>
+              <InboxActions item={item} />
+            </ItemCard>
+          ))}
+        </AnimatePresence>
+      </Grid>
+      {hasMore ? <Sentinel onVisible={loadMore} busy={loadingMore} /> : null}
+    </>
+  );
+}
+
+function InboxActions({ item }: { item: ItemDoc }) {
+  const { uid } = useShell();
+  const decide = async (status: "kept" | "discarded") => {
+    try {
+      await setItemStatus(uid, item, status);
+      if (status === "discarded") {
+        toast("انرمى", { action: { label: "تراجع", onClick: () => void setItemStatus(uid, item, "inbox") } });
+      }
+    } catch (err) {
+      toast.error("ما قدرنا نحدّثه", { description: friendlyError(err) });
+    }
+  };
+  return (
+    <div className="mt-2 px-0.5">
+      {/* Two lines reserved either way, so the decisions line up across the row. */}
+      <p className="line-clamp-2 min-h-10 text-[12.5px] leading-5 text-ink-muted" dir="auto">
+        {item.reason}
+      </p>
+      <div className="mt-2.5 flex gap-2">
+        <Button variant="primary" size="sm" className="flex-1 max-md:h-11" onClick={() => void decide("kept")}>
+          <Check className="size-3.5" />
+          احتفظ
+        </Button>
+        <Button variant="ghost" size="sm" className="flex-1 max-md:h-11" onClick={() => void decide("discarded")}>
+          <X className="size-3.5" />
+          ارمِ
+        </Button>
+      </div>
     </div>
   );
 }
@@ -130,17 +257,21 @@ function Chip({
   active,
   color,
   onClick,
+  role,
   children,
 }: {
   active: boolean;
   color?: string;
   onClick: () => void;
+  role?: "tab";
   children: React.ReactNode;
 }) {
   return (
     <button
       onClick={onClick}
-      aria-pressed={active}
+      role={role}
+      aria-pressed={role ? undefined : active}
+      aria-selected={role ? active : undefined}
       className={cn(
         // 32px pill, 44px tap target via the invisible inset.
         "relative inline-flex h-8 shrink-0 items-center gap-2 rounded-full border px-3.5 text-[13px] transition-colors after:absolute after:-inset-y-1.5 after:inset-x-0",

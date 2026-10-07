@@ -314,11 +314,19 @@ curl -X POST https://ilham.vercel.app/api/v1/projects/vr-onboarding/items \
 | `get_taste(project)` | ذوقك عشان يتعلم منه |
 | `start_run(project, query)` / `finish_run(runId, summary)` | سجل الجلسات |
 
-نبنيه بـ Vercel MCP adapter (`mcp-handler`). في Claude Code يتربط كذا:
+مبني بـ `mcp-handler` 2 (MCP SDK v2، stateless). Tools: `list_projects` · `get_project` · `get_taste` · `create_project` · `add_inspiration` · `update_item` · `start_run` · `finish_run`. الربط (الأوامر الجاهزة بمفتاحك في `/settings`):
 
 ```bash
-claude mcp add --transport http ilham https://ilham.vercel.app/api/mcp \
+# Claude Code
+claude mcp add --transport http ilham https://ilham-psi-lake.vercel.app/api/mcp \
   --header "Authorization: Bearer $ILHAM_KEY"
+```
+
+```toml
+# Codex: ~/.codex/config.toml
+[mcp_servers.ilham]
+url = "https://ilham-psi-lake.vercel.app/api/mcp"
+bearer_token_env_var = "ILHAM_KEY"
 ```
 
 (OAuth للـ connectors في claude.ai نضيفه في Phase 4.)
@@ -465,12 +473,13 @@ ilham/
 
 **✅ Done when:** تلصق رابط Dribbble من الجوال، يطلع كرت ببريفيو في أقل من 5 ثواني، وتضغط عليه يفتح لك الشوت الأصلي.
 
-### Phase 2 — Agent Layer · تقريباً 4 أيام
-- `apiKeys` (hashed + scopes) + صفحة إدارتها
-- REST v1 + zod validation + batch + idempotency
-- MCP server
-- Inbox + Swipe triage
-- Badge ✦ + reason + سجل `agentRuns`
+### Phase 2 — Agent Layer · ✅ مبني ومجرّب على الـ Emulators
+- ✅ `apiKeys` (sha256، المفتاح يظهر مرة وحدة) + صفحة إدارتها (`/settings`) فيها إعداد Codex و Claude Code والتعليمات و curl
+- ✅ REST v1 + zod + batch لين 50 + dedupe (حتى المرفوض ما يرجع)، والمعالجة تكمل بعد الرد بـ `after()`
+- ✅ MCP server (`mcp-handler` 2، MCP SDK v2): 8 tools
+- ✅ Inbox داخل المشروع: احتفظ / ارمِ (مع تراجع) / احتفظ بالكل، والسبب تحت كل كرت
+- ✅ Badge ✦ + reason + سجل `agentRuns`
+- ⏳ Swipe بالجوال واختصارات K / X: لاحقاً
 
 **✅ Done when:** تقول لـ Claude "جب 10 مراجع spatial UI لمشروع `vr-onboarding`"، وخلال دقيقة تلقاها في الـ Inbox ومعها أسبابها.
 

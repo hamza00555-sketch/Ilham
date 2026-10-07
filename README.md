@@ -20,6 +20,13 @@
 - المواقع اللي تحجب السيرفرات (Dribbble و Behance): يطلع كرت fallback بهوية المنصة، وتقدر ترفع له screenshot أو تحط رابط صورة
 - مراجع الفيديو تتحرك عند الـ hover (loop مخزّن أو embed رسمي صامت)، ووحدة بس تشتغل في نفس الوقت، وما يشتغل شي مع reduced-motion
 
+## الوكلاء (Phase 2)
+
+- **مفاتيح الوكلاء** من قائمتك ← `/settings`: المفتاح يظهر مرة وحدة، ومعه إعداد Codex و Claude Code والتعليمات جاهزة.
+- **MCP:** `https://<الدومين>/api/mcp` مع `Authorization: Bearer ilham_sk_…`
+- **REST:** `/api/v1/projects` · `/api/v1/projects/{slug}` · `…/items` (POST لين 50) · `…/items/{id}` (PATCH) · `…/taste` · `/api/v1/runs`
+- كل اللي يضيفه الوكيل يوصل لـ **✦ الوارد** في المشروع مع سببه، وأنت تحتفظ أو ترمي. المرفوض يعلّم `get_taste` ذوقك.
+
 ## التشغيل محلياً (بدون ما تلمس Firebase الحقيقي)
 
 ```bash
@@ -45,8 +52,8 @@ npm run typecheck && npm run lint
 app/            صفحات Next.js (المشاريع · /p/[slug] · /add · /auth/finish)
 components/     الواجهة (shell · projects · project · ui)
 lib/            Firebase client · auth · طبقة البيانات
-app/api/        ingest (رابط ← بريفيو) · sync (العدادات والغلاف) · dev-blob (محلي بس)
-server/         كود السيرفر بس: firebase-admin · auth · blob · stats · ingest/
+app/api/        ingest · sync · keys · v1 (REST للوكلاء) · mcp · dev-blob (محلي بس)
+server/         كود السيرفر بس: firebase-admin · auth · blob · stats · ingest/ · agent/ (keys · service · schemas)
 shared/         كود مشترك بين الواجهة والسيرفر (normalize · colors · types · video)
 tests/          vitest
 ```

@@ -2,8 +2,15 @@
 
 import { firebase } from "./firebase/client";
 
-/** POSTs to one of our route handlers as the signed-in person. Throws `{ code }` like the SDKs do. */
-export async function callApi<T = unknown>(path: string, body: FormData | Record<string, unknown>): Promise<T> {
+/**
+ * Calls one of our route handlers as the signed-in person. POSTs `body` (JSON or FormData) unless
+ * another method is given. Throws `{ code }` like the SDKs do.
+ */
+export async function callApi<T = unknown>(
+  path: string,
+  body?: FormData | Record<string, unknown>,
+  { method = body ? "POST" : "GET" }: { method?: "GET" | "POST" | "DELETE" } = {},
+): Promise<T> {
   const token = await firebase().auth.currentUser?.getIdToken();
   if (!token) throw Object.assign(new Error("unauthenticated"), { code: "unauthenticated" });
 
@@ -11,11 +18,12 @@ export async function callApi<T = unknown>(path: string, body: FormData | Record
   let res: Response;
   try {
     res = await fetch(path, {
-      method: "POST",
-      headers: { authorization: `Bearer ${token}`, ...(isForm ? {} : { "content-type": "application/json" }) },
-      body: isForm ? body : JSON.stringify(body),
+      method,
+      headers: { authorization: `Bearer ${token}`, ...(body && !isForm ? { "content-type": "application/json" } : {}) },
+      body: !body ? undefined : isForm ? body : JSON.stringify(body),
       // Small JSON requests still go out if the page closes right after (the /add popup does).
-      keepalive: !isForm,
+      keepalive: method === "POST" && !isForm,
+      cache: "no-store",
     });
   } catch {
     throw Object.assign(new Error("network"), { code: "network-request-failed" });
