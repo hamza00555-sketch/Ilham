@@ -143,13 +143,23 @@ export function ItemCard({
       {/* Chrome over the work. Never takes clicks: the whole card opens the detail sheet. */}
       <div aria-hidden className={cn("pointer-events-none absolute overflow-hidden rounded-card", frame)}>
         {tile ? (
-          <span className="absolute inset-x-0 bottom-0 flex items-end gap-2 bg-gradient-to-t from-black/80 via-black/35 to-transparent px-3 pt-12 pb-2.5 opacity-0 transition-opacity duration-200 group-focus-within:opacity-100 [@media(hover:hover)]:group-hover:opacity-100">
+          <span
+            className={cn(
+              "absolute inset-x-0 bottom-0 flex items-end gap-2 bg-gradient-to-t from-black/80 via-black/35 to-transparent px-3 pt-12 opacity-0 transition-opacity duration-200 group-focus-within:opacity-100 [@media(hover:hover)]:group-hover:opacity-100",
+              // Tile controls sit at the foot; the caption rises above them.
+              children ? "pb-14" : "pb-2.5",
+            )}
+          >
             <span className="mb-1.5 size-1.5 shrink-0 rounded-full" style={{ background: platform.color }} />
             <span className="min-w-0">
               <span className="block truncate text-[13px] font-medium text-white" dir="auto">
                 {title}
               </span>
-              {byline ? (
+              {item.status === "inbox" && item.reason ? (
+                <span className="line-clamp-2 text-xs leading-5 text-white/75" dir="auto" style={{ textAlign: "start" }}>
+                  {item.reason}
+                </span>
+              ) : byline ? (
                 <span className="block truncate text-xs text-white/70" dir="auto">
                   {byline}
                 </span>

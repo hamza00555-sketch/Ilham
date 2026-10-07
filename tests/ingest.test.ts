@@ -42,6 +42,10 @@ describe("cleanTitle", () => {
   });
   it("strips Behance and site-name suffixes", () => {
     expect(cleanTitle("Brand System :: Behance", "behance").title).toBe("Brand System");
+    expect(cleanTitle("Visa Icon and Illustration System - Forma & Co", "behance")).toEqual({
+      title: "Visa Icon and Illustration System",
+      author: "Forma & Co",
+    });
     expect(cleanTitle("Linear — The method | Linear", "web", "Linear").title).toBe("Linear — The method");
   });
 });

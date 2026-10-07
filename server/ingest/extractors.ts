@@ -118,6 +118,12 @@ export function cleanTitle(
     }
   } else if (platform === "behance") {
     title = title.replace(/\s*(::|\|)\s*Behance$/i, "").replace(/\s+on Behance$/i, "");
+    // Rendered pages title projects "Project - Owner".
+    const m = title.match(/^(.+?)\s+[-–]\s+([^-–]{2,60})$/);
+    if (m) {
+      title = m[1];
+      author = m[2];
+    }
   } else if (platform === "artstation") {
     const m = title.match(/^ArtStation\s*-\s*(.*)$/i);
     if (m) title = m[1];

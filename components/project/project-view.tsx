@@ -1,7 +1,6 @@
 "use client";
 
 import { Check, ChevronRight, Link2, Plus, X } from "lucide-react";
-import { AnimatePresence } from "motion/react";
 import Link from "next/link";
 import { useParams } from "next/navigation";
 import { useEffect, useMemo, useRef, useState } from "react";
@@ -16,7 +15,6 @@ import { useShell } from "../shell/shell-context";
 import { Button } from "../ui/button";
 import { Spark } from "../ui/brand";
 import { BentoBoard } from "./bento-board";
-import { ItemCard } from "./item-card";
 import { ItemDetail } from "./item-detail";
 import { ProjectMenu } from "./project-menu";
 
@@ -196,22 +194,15 @@ function InboxView({ project, onBack }: { project: ProjectDoc; onBack: () => voi
           احتفظ بالكل
         </Button>
       </div>
-      <Grid>
-        <AnimatePresence initial={false}>
-          {items.map((item, i) => (
-            <ItemCard key={item.id} item={item} index={i}>
-              <InboxActions item={item} />
-            </ItemCard>
-          ))}
-        </AnimatePresence>
-      </Grid>
+      <BentoBoard items={items} actions={(item) => <InboxTileActions item={item} />} />
       {hasMore ? <Sentinel onVisible={loadMore} busy={loadingMore} /> : null}
       <ItemDetail ids={items.map((i) => i.id)} />
     </>
   );
 }
 
-function InboxActions({ item }: { item: ItemDoc }) {
+/** Keep / discard at the foot of an Inbox tile: always on phones, on hover or focus on desktop. */
+function InboxTileActions({ item }: { item: ItemDoc }) {
   const { uid } = useShell();
   const decide = async (status: "kept" | "discarded") => {
     try {
@@ -224,21 +215,23 @@ function InboxActions({ item }: { item: ItemDoc }) {
     }
   };
   return (
-    <div className="mt-2 px-0.5">
-      {/* Two lines reserved either way, so the decisions line up across the row. */}
-      <p className="line-clamp-2 min-h-10 text-[12.5px] leading-5 text-ink-muted" dir="auto">
-        {item.reason}
-      </p>
-      <div className="mt-2.5 flex gap-2">
-        <Button variant="primary" size="sm" className="flex-1 max-md:h-11" onClick={() => void decide("kept")}>
-          <Check className="size-3.5" />
-          احتفظ
-        </Button>
-        <Button variant="ghost" size="sm" className="flex-1 max-md:h-11" onClick={() => void decide("discarded")}>
-          <X className="size-3.5" />
-          ارمِ
-        </Button>
-      </div>
+    <div className="absolute inset-x-2 bottom-2 flex gap-1.5 transition-opacity duration-200 [@media(hover:hover)]:opacity-0 [@media(hover:hover)]:group-focus-within:opacity-100 [@media(hover:hover)]:group-hover:opacity-100">
+      <button
+        type="button"
+        onClick={() => void decide("kept")}
+        className="inline-flex h-10 flex-1 items-center justify-center gap-1.5 rounded-full bg-ink text-[13px] font-medium text-canvas shadow-lg shadow-black/30 transition-[background-color,transform] duration-150 ease-out hover:bg-white active:scale-[0.97] md:h-8"
+      >
+        <Check className="size-3.5" />
+        احتفظ
+      </button>
+      <button
+        type="button"
+        onClick={() => void decide("discarded")}
+        className="inline-flex h-10 flex-1 items-center justify-center gap-1.5 rounded-full bg-black/60 text-[13px] font-medium text-white backdrop-blur transition-[background-color,transform] duration-150 ease-out hover:bg-black/80 active:scale-[0.97] md:h-8"
+      >
+        <X className="size-3.5" />
+        ارمِ
+      </button>
     </div>
   );
 }

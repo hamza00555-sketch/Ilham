@@ -130,6 +130,7 @@ const GENERIC_DESCRIPTIONS = [
   /discover the world'?s top designers/i,
   /is the leading destination to find & showcase creative work/i,
   /^explore .{0,40} on (dribbble|behance|pinterest)/i,
+  /connect with them on dribbble/i,
 ];
 
 /** The creator's own words about the work: whitespace tidied, taglines and title echoes dropped. */

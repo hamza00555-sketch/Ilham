@@ -60,8 +60,12 @@ describe("chooseSizes", () => {
       expect(heroes[k] - heroes[k - 1]).toBeLessThanOrEqual(16);
     }
   });
+  it("keeps small boards hero-free", () => {
+    expect(chooseSizes(board(7))).not.toContain("L");
+  });
   it("never makes a blurry or tall image the hero", () => {
-    const sizes = chooseSizes([img("small", 4 / 3, { width: 400 }), img("tall", 0.5), img("none", null)]);
+    const filler = Array.from({ length: 6 }, (_, i) => img(`f${i}`, null));
+    const sizes = chooseSizes([img("small", 4 / 3, { width: 400 }), img("tall", 0.5), img("none", null), ...filler]);
     expect(sizes).not.toContain("L");
   });
   it("keeps most sizes when a new reference arrives on top", () => {

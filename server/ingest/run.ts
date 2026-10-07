@@ -87,6 +87,7 @@ async function ingestFresh(uid: string, item: Item, upload: Buffer | null): Prom
   const resolved = await resolveLink(item.sourceUrl, item.platform, item.hints, {
     upload,
     useMicrolink: process.env.MICROLINK_DISABLED !== "true",
+    useReader: process.env.READER_DISABLED !== "true",
   });
 
   // The page's own credits win; what an agent already told us fills the gaps.

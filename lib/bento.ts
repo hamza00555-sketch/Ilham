@@ -56,17 +56,20 @@ function hash(id: string): number {
 }
 
 const MIN_HERO_GAP = 6;
+const MIN_HERO_BOARD = 8;
 const MAX_HERO_GAP = 12;
 
 /**
- * Sizes for the whole board. Heroes (2×2) open the board and then come roughly every nine
+ * Sizes for the whole board. On boards of eight or more, heroes (2×2) open it and then come roughly every nine
  * references: never closer than six, never further than twelve, picked by id rather than by
  * position so they don't hop around as the board grows.
  */
 export function chooseSizes(items: TileInput[]): TileSize[] {
+  // A handful of references reads better as a row than as one big tile and a gap.
+  const heroes = items.length >= MIN_HERO_BOARD;
   let since = Infinity;
   return items.map((t, i) => {
-    const eligible = heroEligible(t);
+    const eligible = heroes && heroEligible(t);
     const opening = since === Infinity && i < 3;
     const hero =
       eligible && (opening || (since >= MIN_HERO_GAP && (hash(t.id) % 4 === 0 || since >= MAX_HERO_GAP)));

@@ -4,6 +4,7 @@ import { titleFromUrl } from "@/shared/normalize";
 import { cleanTitle, extractViaApi } from "./extractors";
 import { parseHtml } from "./metadata";
 import { microlink } from "./microlink";
+import { reader } from "./reader";
 import { looksBlocked, safeFetch } from "./safeFetch";
 
 export type IngestErrorCode = "blocked" | "no-image" | "fetch-failed" | "invalid-image";
@@ -39,11 +40,13 @@ interface Deps {
   /** An image the user uploaded as the preview. It wins over anything found online. */
   upload?: Buffer | null;
   useMicrolink?: boolean;
+  useReader?: boolean;
 }
 
 /**
  * Works out title/author/media type and downloads the best preview image for a link.
- * Order: uploaded image hint → platform API (YouTube, Vimeo) → page metadata → image hint → Microlink.
+ * Order: uploaded image hint → platform API (YouTube, Vimeo) → page metadata → image hint →
+ * Jina Reader (pages that block us) → Microlink.
  */
 export async function resolveLink(
   url: string,
@@ -52,6 +55,7 @@ export async function resolveLink(
   deps: Deps = {},
 ): Promise<Resolved> {
   const useMicrolink = deps.useMicrolink ?? true;
+  const useReader = deps.useReader ?? true;
   let title: string | undefined;
   let authorName: string | undefined;
   let authorUrl: string | undefined;
@@ -104,7 +108,26 @@ export async function resolveLink(
   if (hints?.videoUrl) videoCandidates.unshift(hints.videoUrl);
   if (!title && hints?.title) title = hints.title;
 
-  // Pages we couldn't read, or that have no og:image: ask a real browser.
+  // Pages that refuse our servers (Dribbble, Behance): read them through Jina Reader's browser.
+  if (useReader && blocked && !directImage && imageCandidates.length === 0 && !deps.upload) {
+    const page = await reader(url);
+    if (page) {
+      blocked = false;
+      const cleaned = cleanTitle(page.title, platform);
+      if (usefulTitle(cleaned.title, platform)) title ??= cleaned.title;
+      authorName ??= cleaned.author ?? page.author;
+      description ??= page.description;
+      publishedAt ??= page.publishedAt;
+      keywords ??= page.keywords;
+      if (page.image) imageCandidates.push(page.image);
+      if (page.video) {
+        videoCandidates.push(page.video);
+        mediaType = "video";
+      }
+    }
+  }
+
+  // Pages we still couldn't read, or that have no og:image: ask a real browser for a screenshot.
   if (useMicrolink && !directImage && imageCandidates.length === 0 && !deps.upload) {
     const ml = await microlink(url, { screenshot: !blocked });
     if (ml) {
@@ -139,6 +162,8 @@ export async function resolveLink(
   }
   if (video) mediaType = "video";
 
+  // Some pages name the platform itself as the author ("Behance").
+  if (authorName && PLATFORM_NAMES.has(authorName.trim().toLowerCase())) authorName = undefined;
   const finalTitle = title || titleFromUrl(url);
   const about = cleanDescription(description, finalTitle);
   return {
@@ -154,6 +179,8 @@ export async function resolveLink(
     error,
   };
 }
+
+const PLATFORM_NAMES = new Set(["behance", "dribbble", "youtube", "vimeo", "pinterest", "artstation", "instagram", "awwwards", "mobbin"]);
 
 /** Rejects titles that are just a hostname or the platform's own name (bot walls, error pages). */
 function usefulTitle(title: string | undefined, platform: Platform): title is string {

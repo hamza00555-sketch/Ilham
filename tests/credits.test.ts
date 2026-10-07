@@ -129,3 +129,31 @@ describe("items with credits and notes", () => {
     expect(makeNote("user", "hi", "Codex")).toMatchObject({ by: "user", name: null, text: "hi" });
   });
 });
+
+describe("reader fallback", () => {
+  it("reads og tags from Jina Reader's JSON, taking the first of repeated tags", async () => {
+    const { parseReader } = await import("@/server/ingest/reader");
+    expect(
+      parseReader({
+        data: {
+          title: "Fallback",
+          metadata: {
+            "og:title": "Revealia logo design",
+            "og:image": ["https://cdn.dribbble.com/userupload/1/file/a.jpg?resize=1600x1200", "https://cdn.dribbble.com/x.jpg"],
+            "og:image:alt": 'Dribbble shot titled "Revealia logo design" by 144p Studio',
+            "og:description": "Revealia logo design designed by 144p Studio. Connect with them on Dribbble; the global community…",
+          },
+        },
+      }),
+    ).toMatchObject({
+      title: "Revealia logo design",
+      author: "144p Studio",
+      image: "https://cdn.dribbble.com/userupload/1/file/a.jpg?resize=1600x1200",
+    });
+    expect(parseReader({ data: { metadata: {} } })).toBeNull();
+    expect(parseReader("nope")).toBeNull();
+  });
+  it("drops Dribbble's boilerplate description", () => {
+    expect(cleanDescription("X designed by 144p Studio. Connect with them on Dribbble; the global community for designers")).toBeNull();
+  });
+});

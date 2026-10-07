@@ -1,7 +1,7 @@
 "use client";
 
 import { AnimatePresence } from "motion/react";
-import { useCallback, useMemo, useState } from "react";
+import { useCallback, useMemo, useState, type ReactNode } from "react";
 import { CELL_RATIO, columnsFor, gapFor, layoutBento, type TileInput } from "@/lib/bento";
 import type { ItemDoc } from "@/lib/data/items";
 import { ItemCard } from "./item-card";
@@ -31,8 +31,9 @@ function useWidth() {
 /**
  * The project board as a bento: big, wide, tall and small tiles from each work's own shape, packed
  * without gaps. The biggest tile is a third of a laptop board; the smallest stays a clear thumbnail.
+ * `actions` puts controls on each tile (the Inbox's keep / discard).
  */
-export function BentoBoard({ items }: { items: ItemDoc[] }) {
+export function BentoBoard({ items, actions }: { items: ItemDoc[]; actions?: (item: ItemDoc) => ReactNode }) {
   const [ref, width] = useWidth();
   const cols = columnsFor(width);
   const gap = gapFor(width);
@@ -50,7 +51,9 @@ export function BentoBoard({ items }: { items: ItemDoc[] }) {
         {width ? (
           <AnimatePresence initial={false}>
             {items.map((item, i) => (
-              <ItemCard key={item.id} item={item} index={i} tile={tiles[i]} />
+              <ItemCard key={item.id} item={item} index={i} tile={tiles[i]}>
+                {actions?.(item)}
+              </ItemCard>
             ))}
           </AnimatePresence>
         ) : null}
