@@ -6,7 +6,7 @@ import { toast } from "sonner";
 import { sendEmailLink, signInWithGoogle } from "@/lib/auth";
 import { friendlyError } from "@/lib/errors";
 import { Button } from "./ui/button";
-import { GoogleMark, Spark, Wordmark } from "./ui/brand";
+import { GoogleMark, LogoMark, Spark } from "./ui/brand";
 import { inputClass } from "./ui/dialog";
 
 // Email link is opt-in: on the free Spark plan it's capped at 5 emails a day.
@@ -85,8 +85,8 @@ export function SignIn() {
     <main className="relative grid min-h-dvh place-items-center overflow-hidden px-6 py-16">
       <Mosaic />
       <div className="relative z-10 w-full max-w-sm animate-rise text-center">
-        <Wordmark className="text-sm text-ink-muted" />
-        <h1 className="mt-6 font-arabic text-6xl leading-none font-bold tracking-tight md:text-7xl">إلهام</h1>
+        <LogoMark className="mx-auto size-16 drop-shadow-[0_12px_32px_rgb(0_0_0/0.6)] md:size-[72px]" />
+        <h1 className="mt-7 font-arabic text-6xl leading-none font-bold tracking-tight md:text-7xl">إلهام</h1>
         <p className="mx-auto mt-5 max-w-xs font-arabic text-[15px] leading-7 text-ink-muted">
           كل مراجعك في مكان واحد. تضيفها أنت أو الإيجنت، وكل كرت يوديك للعمل الأصلي.
         </p>

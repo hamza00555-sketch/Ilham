@@ -9,10 +9,18 @@ export function Spark({ className }: { className?: string }) {
   );
 }
 
+/** The logo: soft-clay bento tiles around the spark (docs/brand has the 1024px masters). */
+export function LogoMark({ className }: { className?: string }) {
+  return (
+    // eslint-disable-next-line @next/next/no-img-element -- tiny static asset, no optimizer round-trip
+    <img src="/brand/ilham-mark.png" alt="" width={160} height={160} decoding="async" className={cn("size-6 shrink-0", className)} />
+  );
+}
+
 export function Wordmark({ className }: { className?: string }) {
   return (
     <span className={cn("inline-flex items-center gap-2 font-semibold tracking-tight", className)} dir="ltr" translate="no">
-      <Spark className="size-[1.05em]" />
+      <LogoMark className="size-[1.35em]" />
       <span>Ilham</span>
     </span>
   );

@@ -151,7 +151,7 @@ A near-black neutral table with three stepped sheets, three ink levels, and one 
 - **Alarm Coral** (`alarm-coral`): destructive actions and error text only.
 
 ### Named Rules
-**The Only Light Rule.** The references are the only saturated color on screen. UI chrome stays in the neutrals; a platform's brand color appears only as a 6px dot beside a caption and as the tint of its fallback tile.
+**The Only Light Rule.** The references are the only saturated color on screen. UI chrome stays in the neutrals; a platform's brand color appears only as a 6px dot beside a caption and as the tint of its fallback tile. The one exception is the logo itself (below), a fixed raster asset that is never recolored.
 
 **The Signal Rule.** Signal Lime marks agent work and is never decoration: not text selection, not the user's own toasts, not loading states.
 
@@ -170,7 +170,7 @@ A near-black neutral table with three stepped sheets, three ink levels, and one 
 - **Caption** (500, 13px, 1.4): reference captions under cards, chip text, field labels.
 - **Label** (500, 12px, 1.4): counts, bylines, nav labels, hints.
 - **Micro** (400, 11px, 1.3): the host under a pending preview, keyboard hints. Never for sentences.
-- **Wordmark** (600, 17px, Geist): the "✦ Ilham" mark only.
+- **Wordmark** (600, 17px, Geist): the logo mark followed by "Ilham", nothing else.
 
 ### Named Rules
 **The Mirror Rule.** The interface is right-to-left. English strings get `dir="auto"` so they keep their own reading order, and they align with the UI: to the right edge, next to their marker, never floating left.
@@ -195,7 +195,9 @@ Flat by default, layered by tone. The table, surface, raised and hover sheets ca
 
 ## Shapes
 
-Gently rounded and consistent: references and covers at 10px, fields and menus at 12px, dialogs at 16px, bottom sheets at 24px on their top corners, and every button and chip a full pill. Icons are Lucide at 16px (20px in the bottom bar), 2px stroke. The brand mark is a four-point spark with curved sides; in ink it is the brand, in Signal Lime it means an agent.
+Gently rounded and consistent: references and covers at 10px, fields and menus at 12px, dialogs at 16px, bottom sheets at 24px on their top corners, and every button and chip a full pill. Icons are Lucide at 16px (20px in the bottom bar), 2px stroke. The UI glyph is a four-point spark with curved sides; in ink it is the brand, in Signal Lime it means an agent.
+
+**The logo** ("Soft Clay Bento", approved October 2026) is four matte clay tiles (teal, terracotta, violet, olive) around the glossy lime spark: a moodboard catching an idea. It is a raster mark, used only as supplied: `public/brand/ilham-mark.png` in the wordmark and on sign-in, `app/icon.png` as the favicon, `app/apple-icon.png` and `public/icons/*` as OS icons (full-bleed on its own near-black, the OS adds the corners). Masters at 1024px live in `docs/brand/`. Never recolor it, outline it, put it on a light card, or rebuild it as flat vector.
 
 ## Components
 
