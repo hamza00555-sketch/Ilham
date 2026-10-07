@@ -29,11 +29,19 @@ export function MotionLayer({ source }: { source: MotionSource }) {
       } catch {
         return;
       }
+      // Vimeo ignores subscriptions sent before its own "ready", so subscribe again on it.
+      if (source.provider === "vimeo" && data?.event === "ready" && frame.current?.contentWindow) {
+        subscribeVimeo(frame.current.contentWindow);
+        return;
+      }
       const info = data?.info as { playerState?: number } | number | undefined;
       const ytPlaying =
         (data?.event === "onStateChange" && info === 1) ||
         (data?.event === "infoDelivery" && typeof info === "object" && info?.playerState === 1);
-      const vimeoPlaying = data?.event === "play" || data?.event === "playProgress" || data?.event === "timeupdate";
+      if (source.provider === "vimeo" && data?.event === "error") return setPlaying(false);
+      // Vimeo sends "play" on intent, even when decoding then fails; only advancing time means frames.
+      const seconds = (data?.data as { seconds?: number } | undefined)?.seconds;
+      const vimeoPlaying = (data?.event === "playProgress" || data?.event === "timeupdate") && (seconds ?? 0) > 0;
       if (source.provider === "youtube" ? ytPlaying : vimeoPlaying) setPlaying(true);
     };
     window.addEventListener("message", onMessage);
@@ -49,7 +57,7 @@ export function MotionLayer({ source }: { source: MotionSource }) {
       win.postMessage(JSON.stringify({ event: "listening", id: 1, channel: "widget" }), origin);
       win.postMessage(JSON.stringify({ event: "command", func: "addEventListener", args: ["onStateChange"] }), origin);
     } else {
-      for (const value of ["play", "playProgress"]) win.postMessage(JSON.stringify({ method: "addEventListener", value }), origin);
+      subscribeVimeo(win);
     }
   };
 
@@ -87,6 +95,12 @@ export function MotionLayer({ source }: { source: MotionSource }) {
       )}
     </span>
   );
+}
+
+function subscribeVimeo(win: Window) {
+  for (const value of ["playProgress", "timeupdate", "error"]) {
+    win.postMessage(JSON.stringify({ method: "addEventListener", value }), PLAYER_ORIGINS.vimeo);
+  }
 }
 
 function withApi(source: Extract<MotionSource, { kind: "embed" }>): string {
