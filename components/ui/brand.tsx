@@ -11,7 +11,7 @@ export function Spark({ className }: { className?: string }) {
 
 export function Wordmark({ className }: { className?: string }) {
   return (
-    <span className={cn("inline-flex items-center gap-2 font-semibold tracking-tight", className)} dir="ltr">
+    <span className={cn("inline-flex items-center gap-2 font-semibold tracking-tight", className)} dir="ltr" translate="no">
       <Spark className="size-[1.05em]" />
       <span>Ilham</span>
     </span>
@@ -34,7 +34,7 @@ export function Avatar({ name, src, className }: { name: string; src?: string | 
     // eslint-disable-next-line @next/next/no-img-element
     <img src={src} alt="" referrerPolicy="no-referrer" className={cn("size-8 rounded-full object-cover", className)} />
   ) : (
-    <span className={cn("grid size-8 place-items-center rounded-full bg-hover text-xs font-semibold uppercase", className)}>
+    <span className={cn("grid size-8 place-items-center rounded-full bg-hover text-xs font-semibold text-ink uppercase", className)}>
       {name.slice(0, 1)}
     </span>
   );

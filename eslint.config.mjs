@@ -13,6 +13,9 @@ const eslintConfig = defineConfig([
     "build/**",
     "next-env.d.ts",
     "functions/lib/**",
+    // Vendored agent skills (third-party bundles) and Impeccable run artifacts.
+    ".claude/**",
+    ".impeccable/**",
     "functions/node_modules/**",
   ]),
 ]);

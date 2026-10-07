@@ -2,6 +2,7 @@
 
 import { Plus } from "lucide-react";
 import { useEffect, useState } from "react";
+import { projectCountLabel } from "@/lib/ui";
 import { NewProjectDialog } from "../shell/new-project-dialog";
 import { useShell } from "../shell/shell-context";
 import { Wordmark } from "../ui/brand";
@@ -22,10 +23,10 @@ export function ProjectsHome() {
         <div>
           <h1 className="font-arabic text-3xl font-semibold tracking-tight md:text-[40px]">المشاريع</h1>
           <p className="mt-2 text-sm text-ink-muted">
-            {projects === undefined ? "…" : projects.length ? `${projects.length} لوحة` : "ابدأ أول لوحة"}
+            {projects === undefined ? "…" : projectCountLabel(projects.length)}
           </p>
         </div>
-        <Button variant="secondary" onClick={() => setCreating(true)}>
+        <Button variant="secondary" className="max-md:h-11" onClick={() => setCreating(true)}>
           <Plus className="size-4" />
           مشروع جديد
         </Button>

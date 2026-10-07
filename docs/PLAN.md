@@ -494,7 +494,8 @@ ilham/
 - محرر الـ Brief (form يحفظ في `brief{}`)
 - `dailyCurate` بـ `onSchedule` + زر "Find more" + webhooks
 - `get_taste` endpoint
-- Extractors خاصة لكل منصة + video loops (mp4 ≤ 3MB)
+- Extractors خاصة لكل منصة
+- ✅ **Living previews:** مراجع الفيديو تتحرك عند الـ hover (وفي الجوال لما يوصل الكرت نص الشاشة). loop مخزّن عندنا (mp4 ≤ 12MB من og:video أو الـ bookmarklet) أو embed رسمي صامت من YouTube/Vimeo، ويظهر بس لما المشغّل يأكد التشغيل
 - pHash dedupe بين المنصات
 - زر Retry للمراجع اللي فشلت معالجتها
 

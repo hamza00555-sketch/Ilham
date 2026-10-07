@@ -1,4 +1,5 @@
 import type { MediaType, Platform } from "../../../shared/types";
+import { youtubeId } from "../../../shared/video";
 import { safeFetch } from "./safeFetch";
 
 export interface ExtractedMeta {
@@ -33,18 +34,6 @@ async function youtube(url: string): Promise<ExtractedMeta | null> {
     imageUrl: hasMaxres ? maxres : `https://i.ytimg.com/vi/${id}/hqdefault.jpg`,
     mediaType: "video",
   };
-}
-
-export function youtubeId(url: string): string | null {
-  try {
-    const u = new URL(url);
-    if (u.hostname === "youtu.be") return u.pathname.slice(1) || null;
-    if (u.searchParams.get("v")) return u.searchParams.get("v");
-    const m = u.pathname.match(/^\/(shorts|embed|live)\/([\w-]{6,})/);
-    return m ? m[2] : null;
-  } catch {
-    return null;
-  }
 }
 
 async function vimeo(url: string): Promise<ExtractedMeta | null> {

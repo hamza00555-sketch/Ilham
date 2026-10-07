@@ -1,5 +1,6 @@
 "use client";
 
+import { ChevronLeft } from "lucide-react";
 import { DropdownMenu as M } from "radix-ui";
 import type { ComponentProps, ReactNode } from "react";
 import { cn } from "@/lib/ui";
@@ -29,7 +30,7 @@ export function MenuItem({
   return (
     <M.Item
       className={cn(
-        "flex cursor-default items-center gap-2.5 rounded-lg px-2.5 py-2 text-sm outline-none select-none",
+        "flex cursor-default items-center gap-2.5 rounded-lg px-2.5 py-2 text-sm outline-none select-none focus-visible:outline-none",
         "data-[highlighted]:bg-hover data-[disabled]:opacity-40",
         danger ? "text-danger" : "text-ink",
         className,
@@ -44,9 +45,11 @@ export function MenuItem({
 
 export function MenuSubTrigger({ icon, children }: { icon?: ReactNode; children: ReactNode }) {
   return (
-    <M.SubTrigger className="flex cursor-default items-center gap-2.5 rounded-lg px-2.5 py-2 text-sm outline-none select-none data-[highlighted]:bg-hover data-[state=open]:bg-hover">
+    <M.SubTrigger className="flex cursor-default items-center gap-2.5 rounded-lg px-2.5 py-2 text-sm outline-none select-none focus-visible:outline-none data-[highlighted]:bg-hover data-[state=open]:bg-hover">
       {icon ? <span className="text-ink-muted [&_svg]:size-4">{icon}</span> : null}
       {children}
+      {/* Submenus open toward the inline end: left in RTL. */}
+      <ChevronLeft className="ms-auto size-4 text-ink-faint ltr:rotate-180" />
     </M.SubTrigger>
   );
 }

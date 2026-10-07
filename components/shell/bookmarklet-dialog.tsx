@@ -7,7 +7,8 @@ import { Dialog } from "../ui/dialog";
 
 /** Runs inside the page you're viewing, so it can read og:image even on sites that block servers. */
 function bookmarkletCode(origin: string) {
-  const js = `(()=>{const q=s=>document.querySelector(s),m=n=>(q('meta[property="'+n+'"]')||q('meta[name="'+n+'"]'))?.content||'';const p=new URLSearchParams({url:location.href,title:m('og:title')||document.title,image:m('og:image')||m('twitter:image')});window.open('${origin}/add?'+p,'ilham','width=480,height=720')})()`;
+  // Also passes the page's first real video file (e.g. a Dribbble video shot), so it can loop on hover.
+  const js = `(()=>{const q=s=>document.querySelector(s),m=n=>(q('meta[property="'+n+'"]')||q('meta[name="'+n+'"]'))?.content||'',v=q('video'),s=v&&(v.currentSrc||v.src||v.querySelector('source')?.src)||'';const p=new URLSearchParams({url:location.href,title:m('og:title')||document.title,image:m('og:image')||m('twitter:image'),video:/^https?:/.test(s)?s:''});window.open('${origin}/add?'+p,'ilham','width=480,height=720')})()`;
   return `javascript:${encodeURIComponent(js)}`;
 }
 

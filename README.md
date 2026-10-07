@@ -4,6 +4,8 @@
 المراجع تتجمع في مشاريع، تضيفها أنت أو الإيجنت، وكل كرت يوديك لصفحة العمل الأصلية.
 
 - 📐 الخطة الكاملة: [`docs/PLAN.md`](docs/PLAN.md)
+- 🎨 نظام التصميم ("The Light Table"): [`DESIGN.md`](DESIGN.md) · حقيقة المنتج: [`PRODUCT.md`](PRODUCT.md)
+- 🧰 مهارات التصميم للإيجنت: [`.claude/skills/SOURCES.md`](.claude/skills/SOURCES.md)
 - 🧱 Stack: Next.js 16 (App Router) · Tailwind v4 · Firebase (Firestore · Auth · Storage · Functions) · Vercel
 
 ## اللي شغال الحين (Phase 0 + 1)
@@ -15,6 +17,7 @@
 - منع التكرار: الرابط يتنظّف (tracking و `youtu.be`…) وينحسب له hash، ويصير جزء من الـ doc ID
 - الكروت تتحدث live، والضغطة تفتح العمل الأصلي، وقائمة `⋯` فيها: نسخ، تغيير البريفيو، Retry، نقل، حذف مع تراجع
 - المواقع اللي تحجب السيرفرات (Dribbble و Behance): يطلع كرت fallback بهوية المنصة، وتقدر ترفع له screenshot أو تحط رابط صورة
+- مراجع الفيديو تتحرك عند الـ hover (loop مخزّن أو embed رسمي صامت)، ووحدة بس تشتغل في نفس الوقت، وما يشتغل شي مع reduced-motion
 
 ## التشغيل محلياً (بدون ما تلمس Firebase الحقيقي)
 

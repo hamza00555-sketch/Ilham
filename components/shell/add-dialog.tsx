@@ -1,5 +1,6 @@
 "use client";
 
+import { ChevronDown } from "lucide-react";
 import { useRouter } from "next/navigation";
 import { useState, type FormEvent } from "react";
 import { createProject } from "@/lib/data/projects";
@@ -25,7 +26,7 @@ export function AddDialog({
   prefill?: AddPrefill;
 }) {
   return (
-    <Dialog open={open} onOpenChange={onOpenChange} title="إضافة مرجع" description="الصق رابط أي عمل يلهمك.">
+    <Dialog open={open} onOpenChange={onOpenChange} title="أضف مرجع" description="الصق رابط أي عمل يلهمك.">
       {/* Dialog content unmounts on close, so the form starts fresh on every open. */}
       <AddForm prefill={prefill} onDone={() => onOpenChange(false)} />
     </Dialog>
@@ -55,9 +56,10 @@ function AddForm({ prefill, onDone }: { prefill?: AddPrefill; onDone: () => void
         target = { id: created.id, slug: created.slug, name: newName.trim() };
       }
       if (!target) return;
-      const added = await addTo(target, parsed);
+      const outcome = await addTo(target, parsed);
+      if (outcome === "error") return;
       onDone();
-      if ((added || creating) && currentProject?.id !== target.id) router.push(`/p/${target.slug}`);
+      if ((outcome === "added" || creating) && currentProject?.id !== target.id) router.push(`/p/${target.slug}`);
     } finally {
       setBusy(false);
     }
@@ -65,13 +67,26 @@ function AddForm({ prefill, onDone }: { prefill?: AddPrefill; onDone: () => void
 
   return (
     <form onSubmit={submit} className="space-y-4">
-      <Field label="الرابط" hint={parsed ? displayHost(parsed) : "Dribbble · Behance · YouTube · Vimeo · أي صفحة"}>
+      <Field
+        label="الرابط"
+        hint={
+          parsed ? (
+            <bdi>{displayHost(parsed)}</bdi>
+          ) : (
+            <>
+              أي صفحة، مثل <bdi>Dribbble · Behance · YouTube · Vimeo</bdi>
+            </>
+          )
+        }
+      >
         <input
           autoFocus
           dir="ltr"
+          name="url"
           inputMode="url"
           autoComplete="off"
-          placeholder="https://"
+          spellCheck={false}
+          placeholder="https://…"
           value={url}
           onChange={(e) => setUrl(e.target.value)}
           className={inputClass}
@@ -80,14 +95,21 @@ function AddForm({ prefill, onDone }: { prefill?: AddPrefill; onDone: () => void
 
       {projects?.length ? (
         <Field label="المشروع">
-          <select value={projectId} onChange={(e) => setProjectId(e.target.value)} className={`${inputClass} appearance-none`}>
-            {projects.map((p) => (
-              <option key={p.id} value={p.id}>
-                {p.name}
-              </option>
-            ))}
-            <option value={NEW}>＋ مشروع جديد…</option>
-          </select>
+          <span className="relative block">
+            <select
+              value={projectId}
+              onChange={(e) => setProjectId(e.target.value)}
+              className={`${inputClass} appearance-none pe-10`}
+            >
+              {projects.map((p) => (
+                <option key={p.id} value={p.id}>
+                  {p.name}
+                </option>
+              ))}
+              <option value={NEW}>＋ مشروع جديد…</option>
+            </select>
+            <ChevronDown className="pointer-events-none absolute end-3.5 top-1/2 size-4 -translate-y-1/2 text-ink-muted" />
+          </span>
         </Field>
       ) : null}
 
@@ -96,6 +118,8 @@ function AddForm({ prefill, onDone }: { prefill?: AddPrefill; onDone: () => void
           <input
             value={newName}
             onChange={(e) => setNewName(e.target.value)}
+            name="project"
+            autoComplete="off"
             placeholder="مثلاً: VR Onboarding"
             className={inputClass}
             dir="auto"

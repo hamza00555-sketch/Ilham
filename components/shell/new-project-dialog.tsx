@@ -4,6 +4,7 @@ import { useRouter } from "next/navigation";
 import { useState, type FormEvent } from "react";
 import { toast } from "sonner";
 import { createProject } from "@/lib/data/projects";
+import { friendlyError } from "@/lib/errors";
 import { Button } from "../ui/button";
 import { Dialog, Field, inputClass } from "../ui/dialog";
 import { useShell } from "./shell-context";
@@ -24,7 +25,7 @@ export function NewProjectDialog({ open, onOpenChange }: { open: boolean; onOpen
       onOpenChange(false);
       router.push(`/p/${slug}`);
     } catch (err) {
-      toast.error("ما قدرنا ننشئ المشروع", { description: (err as Error).message });
+      toast.error("ما قدرنا ننشئ المشروع", { description: friendlyError(err) });
     } finally {
       setBusy(false);
     }
@@ -34,7 +35,15 @@ export function NewProjectDialog({ open, onOpenChange }: { open: boolean; onOpen
     <Dialog open={open} onOpenChange={onOpenChange} title="مشروع جديد" description="لوحة تجمع فيها مراجع فكرة وحدة.">
       <form onSubmit={submit} className="space-y-4">
         <Field label="الاسم" hint="مثلاً: nike-ar-launch أو «هوية مقهى»">
-          <input autoFocus value={name} onChange={(e) => setName(e.target.value)} className={inputClass} dir="auto" />
+          <input
+            autoFocus
+            name="project"
+            autoComplete="off"
+            value={name}
+            onChange={(e) => setName(e.target.value)}
+            className={inputClass}
+            dir="auto"
+          />
         </Field>
         <Button type="submit" variant="primary" size="lg" className="w-full" disabled={!name.trim() || busy}>
           أنشئ المشروع

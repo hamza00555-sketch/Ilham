@@ -46,14 +46,14 @@ export function ItemMenu({
 
   return (
     <Menu>
+      {/* 44px hit area on phones around a quiet 28px dot, so the button never covers the work. */}
       <MenuTrigger
-        className={cn(
-          "grid place-items-center rounded-full text-white backdrop-blur transition hover:bg-black/75",
-          className,
-        )}
-        aria-label="خيارات"
+        className={cn("group/menu grid size-11 place-items-center rounded-full transition-opacity md:size-9", className)}
+        aria-label="خيارات المرجع"
       >
-        <MoreHorizontal className="size-4" />
+        <span className="grid size-7 place-items-center rounded-full bg-black/35 text-white backdrop-blur transition-colors group-hover/menu:bg-black/70 group-data-[state=open]/menu:bg-black/70 md:size-8 md:bg-black/55">
+          <MoreHorizontal className="size-4" />
+        </span>
       </MenuTrigger>
       <MenuContent align="end">
         <MenuItem icon={<ExternalLink />} onSelect={() => window.open(item.sourceUrl, "_blank", "noopener")}>

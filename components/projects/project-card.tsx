@@ -8,7 +8,7 @@ function Tile({ tile, className }: { tile: CoverTile; className?: string }) {
   return (
     <span
       className={cn(
-        "block bg-cover transition-transform duration-700 ease-out-quint group-hover:scale-[1.04]",
+        "block bg-cover transition-transform duration-300 ease-out-quint group-hover:scale-[1.02]",
         tile.tall ? "bg-top" : "bg-center",
         className,
       )}

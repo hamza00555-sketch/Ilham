@@ -1,0 +1,384 @@
+{
+  "schemaVersion": 2,
+  "generatedAt": "2026-10-07T15:49:45Z",
+  "title": "Design System: Ilham",
+  "extensions": {
+    "colorMeta": {
+      "table-black": {
+        "role": "neutral",
+        "displayName": "Table Black",
+        "canonical": "#0b0b0c",
+        "tonalRamp": [
+          "oklch(15% 0.006 286)",
+          "oklch(27% 0.006 286)",
+          "oklch(39% 0.006 286)",
+          "oklch(51% 0.006 286)",
+          "oklch(63% 0.006 286)",
+          "oklch(75% 0.006 286)",
+          "oklch(86% 0.006 286)",
+          "oklch(95% 0.006 286)"
+        ]
+      },
+      "table-surface": {
+        "role": "neutral",
+        "displayName": "Table Surface",
+        "canonical": "#121214",
+        "tonalRamp": [
+          "oklch(15% 0.006 286)",
+          "oklch(27% 0.006 286)",
+          "oklch(39% 0.006 286)",
+          "oklch(51% 0.006 286)",
+          "oklch(63% 0.006 286)",
+          "oklch(75% 0.006 286)",
+          "oklch(86% 0.006 286)",
+          "oklch(95% 0.006 286)"
+        ]
+      },
+      "raised-sheet": {
+        "role": "neutral",
+        "displayName": "Raised Sheet",
+        "canonical": "#1a1a1d",
+        "tonalRamp": [
+          "oklch(15% 0.006 286)",
+          "oklch(27% 0.006 286)",
+          "oklch(39% 0.006 286)",
+          "oklch(51% 0.006 286)",
+          "oklch(63% 0.006 286)",
+          "oklch(75% 0.006 286)",
+          "oklch(86% 0.006 286)",
+          "oklch(95% 0.006 286)"
+        ]
+      },
+      "hover-sheet": {
+        "role": "neutral",
+        "displayName": "Hover Sheet",
+        "canonical": "#222226",
+        "tonalRamp": [
+          "oklch(15% 0.006 286)",
+          "oklch(27% 0.006 286)",
+          "oklch(39% 0.006 286)",
+          "oklch(51% 0.006 286)",
+          "oklch(63% 0.006 286)",
+          "oklch(75% 0.006 286)",
+          "oklch(86% 0.006 286)",
+          "oklch(95% 0.006 286)"
+        ]
+      },
+      "hairline": {
+        "role": "neutral",
+        "displayName": "Hairline",
+        "canonical": "rgb(255 255 255 / 0.07)",
+        "tonalRamp": [
+          "rgb(255 255 255 / 0.03)",
+          "rgb(255 255 255 / 0.05)",
+          "rgb(255 255 255 / 0.07)",
+          "rgb(255 255 255 / 0.1)",
+          "rgb(255 255 255 / 0.13)",
+          "rgb(255 255 255 / 0.18)",
+          "rgb(255 255 255 / 0.24)",
+          "rgb(255 255 255 / 0.32)"
+        ]
+      },
+      "hairline-strong": {
+        "role": "neutral",
+        "displayName": "Hairline Strong",
+        "canonical": "rgb(255 255 255 / 0.13)",
+        "tonalRamp": [
+          "rgb(255 255 255 / 0.03)",
+          "rgb(255 255 255 / 0.05)",
+          "rgb(255 255 255 / 0.07)",
+          "rgb(255 255 255 / 0.1)",
+          "rgb(255 255 255 / 0.13)",
+          "rgb(255 255 255 / 0.18)",
+          "rgb(255 255 255 / 0.24)",
+          "rgb(255 255 255 / 0.32)"
+        ]
+      },
+      "ink": {
+        "role": "neutral",
+        "displayName": "Ink",
+        "canonical": "#f4f4f5",
+        "tonalRamp": [
+          "oklch(15% 0.006 286)",
+          "oklch(27% 0.006 286)",
+          "oklch(39% 0.006 286)",
+          "oklch(51% 0.006 286)",
+          "oklch(63% 0.006 286)",
+          "oklch(75% 0.006 286)",
+          "oklch(86% 0.006 286)",
+          "oklch(95% 0.006 286)"
+        ]
+      },
+      "ink-muted": {
+        "role": "neutral",
+        "displayName": "Ink Muted",
+        "canonical": "#a1a1aa",
+        "tonalRamp": [
+          "oklch(15% 0.012 286)",
+          "oklch(27% 0.012 286)",
+          "oklch(39% 0.012 286)",
+          "oklch(51% 0.012 286)",
+          "oklch(63% 0.012 286)",
+          "oklch(75% 0.012 286)",
+          "oklch(86% 0.012 286)",
+          "oklch(95% 0.012 286)"
+        ]
+      },
+      "ink-faint": {
+        "role": "neutral",
+        "displayName": "Ink Faint",
+        "canonical": "#85858e",
+        "tonalRamp": [
+          "oklch(15% 0.012 286)",
+          "oklch(27% 0.012 286)",
+          "oklch(39% 0.012 286)",
+          "oklch(51% 0.012 286)",
+          "oklch(63% 0.012 286)",
+          "oklch(75% 0.012 286)",
+          "oklch(86% 0.012 286)",
+          "oklch(95% 0.012 286)"
+        ]
+      },
+      "signal-lime": {
+        "role": "primary",
+        "displayName": "Signal Lime",
+        "canonical": "#c6ff3d",
+        "tonalRamp": [
+          "oklch(15% 0.2 127)",
+          "oklch(27% 0.2 127)",
+          "oklch(39% 0.2 127)",
+          "oklch(51% 0.2 127)",
+          "oklch(63% 0.2 127)",
+          "oklch(75% 0.2 127)",
+          "oklch(86% 0.2 127)",
+          "oklch(95% 0.2 127)"
+        ]
+      },
+      "alarm-coral": {
+        "role": "neutral",
+        "displayName": "Alarm Coral",
+        "canonical": "#ff5c5f",
+        "tonalRamp": [
+          "oklch(15% 0.19 22)",
+          "oklch(27% 0.19 22)",
+          "oklch(39% 0.19 22)",
+          "oklch(51% 0.19 22)",
+          "oklch(63% 0.19 22)",
+          "oklch(75% 0.19 22)",
+          "oklch(86% 0.19 22)",
+          "oklch(95% 0.19 22)"
+        ]
+      }
+    },
+    "typographyMeta": {
+      "display": {
+        "displayName": "Display",
+        "purpose": "Page titles: المشاريع and project names."
+      },
+      "headline": {
+        "displayName": "Headline",
+        "purpose": "Dialog titles, empty-state headings, the /add question."
+      },
+      "title": {
+        "displayName": "Title",
+        "purpose": "Project names on cover cards, fallback titles, field text."
+      },
+      "body": {
+        "displayName": "Body",
+        "purpose": "Descriptions, dialog and empty-state copy."
+      },
+      "label": {
+        "displayName": "Label",
+        "purpose": "Counts, bylines, nav labels, hints."
+      },
+      "caption": {
+        "displayName": "Caption",
+        "purpose": "Reference captions, chip text, field labels."
+      },
+      "micro": {
+        "displayName": "Micro",
+        "purpose": "Pending host, keyboard hints. Never sentences."
+      },
+      "wordmark": {
+        "displayName": "Wordmark",
+        "purpose": "The ✦ Ilham mark only."
+      }
+    },
+    "shadows": [
+      {
+        "name": "float",
+        "value": "0 25px 50px -12px rgb(0 0 0 / 0.6)",
+        "purpose": "Dialogs and bottom sheets floating above the table."
+      },
+      {
+        "name": "menu",
+        "value": "0 20px 25px -5px rgb(0 0 0 / 0.5), 0 8px 10px -6px rgb(0 0 0 / 0.5)",
+        "purpose": "Menus and toasts."
+      }
+    ],
+    "motion": [
+      {
+        "name": "ease-out-quint",
+        "value": "cubic-bezier(0.22, 1, 0.36, 1)",
+        "purpose": "Default for entrances and hover transforms."
+      },
+      {
+        "name": "ease-out-strong",
+        "value": "cubic-bezier(0.23, 1, 0.32, 1)",
+        "purpose": "Card entrance (300ms, 30ms stagger)."
+      },
+      {
+        "name": "hover",
+        "value": "200–300ms",
+        "purpose": "Hover overlay fade 200ms; image scale to 1.02 in 300ms."
+      },
+      {
+        "name": "rise",
+        "value": "300ms",
+        "purpose": "Dialogs, menus and cards rising 8px into place."
+      },
+      {
+        "name": "press",
+        "value": "150ms scale(0.97)",
+        "purpose": "Every pressable element."
+      },
+      {
+        "name": "living-preview-dwell",
+        "value": "280ms",
+        "purpose": "Hover dwell before a motion reference comes alive; fades in 300ms after playback is confirmed."
+      }
+    ],
+    "breakpoints": [
+      {
+        "name": "sm",
+        "value": "640px"
+      },
+      {
+        "name": "md",
+        "value": "768px"
+      },
+      {
+        "name": "xl",
+        "value": "1280px"
+      },
+      {
+        "name": "2xl",
+        "value": "1536px"
+      }
+    ]
+  },
+  "components": [
+    {
+      "name": "Primary Button",
+      "kind": "button",
+      "refersTo": "button-primary",
+      "description": "The one primary action per view: أضف مرجع.",
+      "html": "<button class=\"ds-btn-primary\"><svg width=\"16\" height=\"16\" viewBox=\"0 0 24 24\" fill=\"none\" stroke=\"currentColor\" stroke-width=\"2\" stroke-linecap=\"round\"><path d=\"M12 5v14M5 12h14\"/></svg>أضف مرجع</button>",
+      "css": ".ds-btn-primary{display:inline-flex;align-items:center;gap:8px;height:40px;padding:0 16px;border:0;border-radius:9999px;background:var(--color-ink,#f4f4f5);color:var(--color-canvas,#0b0b0c);font:500 14px/1 'IBM Plex Sans Arabic',Geist,system-ui,sans-serif;cursor:pointer;transition:background-color .15s ease,transform .15s ease}.ds-btn-primary:hover{background:#fff}.ds-btn-primary:active{transform:scale(.97)}.ds-btn-primary:focus-visible{outline:2px solid var(--color-ink,#f4f4f5);outline-offset:2px}"
+    },
+    {
+      "name": "Secondary Button",
+      "kind": "button",
+      "refersTo": "button-secondary",
+      "description": "Header actions such as مشروع جديد.",
+      "html": "<button class=\"ds-btn-secondary\">مشروع جديد</button>",
+      "css": ".ds-btn-secondary{display:inline-flex;align-items:center;height:40px;padding:0 16px;border:1px solid rgb(255 255 255 / .13);border-radius:9999px;background:var(--color-raised,#1a1a1d);color:var(--color-ink,#f4f4f5);font:500 14px/1 'IBM Plex Sans Arabic',Geist,system-ui,sans-serif;cursor:pointer;transition:background-color .15s ease,transform .15s ease}.ds-btn-secondary:hover{background:var(--color-hover,#222226)}.ds-btn-secondary:active{transform:scale(.97)}.ds-btn-secondary:focus-visible{outline:2px solid var(--color-ink,#f4f4f5);outline-offset:2px}"
+    },
+    {
+      "name": "Platform Chip",
+      "kind": "chip",
+      "refersTo": "chip",
+      "description": "Single-select platform filter with dot and count.",
+      "html": "<div class=\"ds-chips\" dir=\"rtl\"><button class=\"ds-chip ds-chip-on\" aria-pressed=\"true\">الكل</button><button class=\"ds-chip\" aria-pressed=\"false\"><span class=\"ds-dot\" style=\"background:#ea4c89\"></span>Dribbble <span class=\"ds-count\">4</span></button><button class=\"ds-chip\" aria-pressed=\"false\"><span class=\"ds-dot\" style=\"background:#1ab7ea\"></span>Vimeo <span class=\"ds-count\">2</span></button></div>",
+      "css": ".ds-chips{display:flex;gap:8px}.ds-chip{display:inline-flex;align-items:center;gap:8px;height:32px;padding:0 14px;border:1px solid rgb(255 255 255 / .13);border-radius:9999px;background:transparent;color:var(--color-ink-muted,#a1a1aa);font:400 13px/1 Geist,'IBM Plex Sans Arabic',system-ui,sans-serif;cursor:pointer;transition:color .15s ease,border-color .15s ease}.ds-chip:hover{color:var(--color-ink,#f4f4f5);border-color:var(--color-ink-faint,#85858e)}.ds-chip-on{background:var(--color-ink,#f4f4f5);border-color:var(--color-ink,#f4f4f5);color:var(--color-canvas,#0b0b0c)}.ds-dot{width:6px;height:6px;border-radius:9999px}.ds-count{color:var(--color-ink-faint,#85858e)}.ds-chip:focus-visible{outline:2px solid var(--color-ink,#f4f4f5);outline-offset:2px}"
+    },
+    {
+      "name": "Text Field",
+      "kind": "input",
+      "refersTo": "input",
+      "description": "44px well on the table; focus brightens the border.",
+      "html": "<label class=\"ds-field\" dir=\"rtl\"><span>الرابط</span><input class=\"ds-input\" dir=\"ltr\" placeholder=\"https://\"></label>",
+      "css": ".ds-field{display:grid;gap:6px;font:500 13px/1.4 'IBM Plex Sans Arabic',system-ui,sans-serif;color:var(--color-ink-muted,#a1a1aa)}.ds-input{height:44px;padding:0 14px;border:1px solid rgb(255 255 255 / .13);border-radius:12px;background:var(--color-canvas,#0b0b0c);color:var(--color-ink,#f4f4f5);font:400 15px/1 Geist,system-ui,sans-serif;outline:none;transition:border-color .15s ease}.ds-input::placeholder{color:var(--color-ink-faint,#85858e)}.ds-input:focus{border-color:var(--color-ink,#f4f4f5)}"
+    },
+    {
+      "name": "Reference Card",
+      "kind": "card",
+      "refersTo": "reference-card",
+      "description": "4:3 work on its dominant color; caption with platform dot; hover pill names the destination.",
+      "html": "<article class=\"ds-ref\" dir=\"rtl\"><a class=\"ds-ref-media\" href=\"#\" style=\"background:linear-gradient(135deg,#1d3b53,#5a2a17)\"><span class=\"ds-ref-pill\">افتح في Dribbble ↗</span></a><div class=\"ds-ref-cap\"><span class=\"ds-dot\" style=\"background:#ea4c89\"></span><p dir=\"auto\">Spatial Onboarding</p><span class=\"ds-by\" dir=\"auto\">Jane Doe</span></div></article>",
+      "css": ".ds-ref{width:280px;font-family:Geist,'IBM Plex Sans Arabic',system-ui,sans-serif}.ds-ref-media{position:relative;display:block;aspect-ratio:4/3;border-radius:10px;overflow:hidden;background:#1a1a1d;transition:transform .3s cubic-bezier(.22,1,.36,1)}.ds-ref-pill{position:absolute;inset-inline-end:12px;bottom:12px;padding:6px 12px;border-radius:9999px;background:rgb(0 0 0 / .45);backdrop-filter:blur(8px);color:#fff;font-size:12px;font-weight:500;opacity:0;transition:opacity .2s ease}.ds-ref:hover .ds-ref-pill{opacity:1}.ds-ref-cap{display:flex;align-items:center;gap:8px;margin-top:10px;padding:0 2px}.ds-ref-cap p{margin:0;font-size:13px;font-weight:500;color:var(--color-ink,#f4f4f5);text-align:right;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}.ds-by{margin-inline-start:auto;font-size:12px;color:var(--color-ink-faint,#85858e)}.ds-dot{width:6px;height:6px;border-radius:9999px;flex:none}.ds-ref-media:focus-visible{outline:2px solid var(--color-ink,#f4f4f5);outline-offset:2px}"
+    },
+    {
+      "name": "Agent Badge",
+      "kind": "custom",
+      "refersTo": "",
+      "description": "The only use of Signal Lime: marks a reference an agent added.",
+      "html": "<span class=\"ds-agent\" role=\"img\" aria-label=\"أضافه الإيجنت\"><svg viewBox=\"0 0 24 24\" width=\"12\" height=\"12\" fill=\"currentColor\"><path d=\"M12 1.5c.6 5.6 2.9 9.9 10.5 10.5-7.6.6-9.9 4.9-10.5 10.5C11.4 16.9 9.1 12.6 1.5 12 9.1 11.4 11.4 7.1 12 1.5Z\"/></svg></span>",
+      "css": ".ds-agent{display:inline-grid;place-items:center;width:24px;height:24px;border-radius:9999px;background:rgb(0 0 0 / .6);color:var(--color-signal,#c6ff3d);backdrop-filter:blur(8px)}"
+    },
+    {
+      "name": "Sidebar Project Row",
+      "kind": "nav",
+      "refersTo": "",
+      "description": "Cover thumbnail, name, count; active row is a raised sheet.",
+      "html": "<nav class=\"ds-nav\" dir=\"rtl\"><a class=\"ds-row ds-row-on\" href=\"#\"><span class=\"ds-thumb\" style=\"background:linear-gradient(135deg,#ff2bd6,#ff7a1a)\"></span><span class=\"ds-name\" dir=\"auto\">VR Onboarding</span><span class=\"ds-n\">7</span></a><a class=\"ds-row\" href=\"#\"><span class=\"ds-thumb\"></span><span class=\"ds-name\" dir=\"auto\">Brand X Motion</span><span class=\"ds-n\">2</span></a></nav>",
+      "css": ".ds-nav{display:grid;gap:2px;width:240px;font:400 14px/1.4 Geist,'IBM Plex Sans Arabic',system-ui,sans-serif}.ds-row{display:flex;align-items:center;gap:12px;padding:6px 8px;border-radius:8px;color:var(--color-ink-muted,#a1a1aa);text-decoration:none;transition:background-color .15s ease,color .15s ease}.ds-row:hover,.ds-row-on{background:var(--color-raised,#1a1a1d);color:var(--color-ink,#f4f4f5)}.ds-thumb{width:28px;height:28px;flex:none;border-radius:6px;background:var(--color-hover,#222226);box-shadow:inset 0 0 0 1px rgb(255 255 255 / .07)}.ds-name{flex:1;min-width:0;text-align:right;overflow:hidden;white-space:nowrap;text-overflow:ellipsis}.ds-n{font-size:12px;font-variant-numeric:tabular-nums;color:var(--color-ink-faint,#85858e)}.ds-row:focus-visible{outline:2px solid var(--color-ink,#f4f4f5);outline-offset:2px}"
+    }
+  ],
+  "narrative": {
+    "northStar": "The Light Table",
+    "overview": "Ilham is the table a studio lays its references on. The table is dark and quiet; the references are the only light. Every surface decision serves that contrast: neutral sheets and hairlines instead of decoration, so that a Dribbble shot, a Vimeo still or a Behance spread is the brightest, most colorful thing in view. The tools sit at the edges of the table (the sidebar, menus that appear on demand, a bottom bar on phones) and stay precise and calm, the way a good loupe or a pencil does.\n\nThe table is for working, not browsing: projects are boards a team builds over time, capture costs one gesture, and the grid is dense enough to compare references side by side. It is Arabic and right-to-left, while most references are titled in English; both directions sit naturally on one table. Motion is part of the material: references that move come alive under the cursor or in the middle of a phone screen, one at a time, and settle back to stills.",
+    "keyCharacteristics": [
+      "Dark tonal sheets with white hairlines; color comes only from the work.",
+      "A 4:3 reference grid (2 → 3 → 4 → 5 columns), each preview on its own dominant color.",
+      "One signal color, Signal Lime, reserved for anything an agent touched.",
+      "RTL Arabic interface with English titles that keep their own direction.",
+      "Living previews for motion references: muted, single, revealed only when actually playing.",
+      "Phones get 44px touch targets and bottom sheets; desktops get hover and keyboard paste."
+    ],
+    "rules": [
+      {
+        "name": "The Only Light Rule",
+        "body": "The references are the only saturated color on screen. UI chrome stays in the neutrals; a platform's brand color appears only as a 6px dot beside a caption and as the tint of its fallback tile.",
+        "section": "colors"
+      },
+      {
+        "name": "The Signal Rule",
+        "body": "Signal Lime marks agent work and is never decoration: not text selection, not the user's own toasts, not loading states.",
+        "section": "colors"
+      },
+      {
+        "name": "The Mirror Rule",
+        "body": "The interface is right-to-left. English strings get dir=\"auto\" so they keep their own reading order, and they align with the UI: to the right edge, next to their marker, never floating left.",
+        "section": "typography"
+      },
+      {
+        "name": "The 44 Rule",
+        "body": "On phones every control is at least 44px to touch, even when its visual is smaller (32px chips, 28px card menus extend their hit area invisibly).",
+        "section": "layout"
+      },
+      {
+        "name": "The Hairline Rule",
+        "body": "Cards have no border and no shadow. A reference's own image, sitting on its dominant color, is the card's edge.",
+        "section": "elevation"
+      }
+    ],
+    "dos": [
+      "Do let the reference be the brightest thing in view: neutral chrome, dominant-color backings, and no grey placeholder boxes ever.",
+      "Do keep text at ≥4.5:1: use ink-faint (#85858e) as the floor for small text, and never anything dimmer.",
+      "Do give every phone control a 44px hit area, and put the primary action in the thumb zone.",
+      "Do keep English titles in their own direction (dir=\"auto\") and align them with the RTL UI.",
+      "Do use the strong ease-out curve (cubic-bezier(0.22, 1, 0.36, 1)), keep UI motion under 300ms, and stagger lists by 30ms.",
+      "Do honor reduced motion fully: no loops, no autoplaying previews, no movement.",
+      "Do name a reference's destination honestly in the hover pill (a platform name, or the host for any other site)."
+    ],
+    "donts": [
+      "Don't use Signal Lime or the lime ✦ for anything an agent didn't do.",
+      "Don't add borders, shadows or nested containers to reference cards.",
+      "Don't repeat the caption's title inside the card's hover overlay, or show the overlay on a card without a preview.",
+      "Don't crop text-heavy wide OG images; contain them on their dominant color.",
+      "Don't reveal a motion embed before the player reports playback.",
+      "Don't let two previews play at once."
+    ]
+  }
+}

@@ -5,6 +5,7 @@ import { useRouter } from "next/navigation";
 import { useState, type FormEvent } from "react";
 import { toast } from "sonner";
 import { deleteProject, renameProject, type ProjectDoc } from "@/lib/data/projects";
+import { friendlyError } from "@/lib/errors";
 import { useShell } from "../shell/shell-context";
 import { Button } from "../ui/button";
 import { Dialog, Field, inputClass } from "../ui/dialog";
@@ -24,7 +25,7 @@ export function ProjectMenu({ project }: { project: ProjectDoc }) {
       await deleteProject(uid, project.id);
       toast(`انحذف «${project.name}»`);
     } catch (err) {
-      toast.error("ما قدرنا نحذف المشروع", { description: (err as Error).message });
+      toast.error("ما قدرنا نحذف المشروع", { description: friendlyError(err) });
     } finally {
       setBusy(false);
       setDeleting(false);
@@ -35,7 +36,7 @@ export function ProjectMenu({ project }: { project: ProjectDoc }) {
     <>
       <Menu>
         <MenuTrigger asChild>
-          <Button variant="secondary" size="icon" aria-label="خيارات المشروع">
+          <Button variant="secondary" size="icon" className="max-md:size-11" aria-label="خيارات المشروع">
             <MoreHorizontal className="size-4" />
           </Button>
         </MenuTrigger>

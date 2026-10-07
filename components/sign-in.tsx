@@ -4,6 +4,7 @@ import { ArrowLeft, Mail } from "lucide-react";
 import { useState, type FormEvent } from "react";
 import { toast } from "sonner";
 import { sendEmailLink, signInWithGoogle } from "@/lib/auth";
+import { friendlyError } from "@/lib/errors";
 import { Button } from "./ui/button";
 import { GoogleMark, Spark, Wordmark } from "./ui/brand";
 import { inputClass } from "./ui/dialog";
@@ -29,7 +30,7 @@ function Mosaic() {
         return (
           <div
             key={c}
-            className="flex flex-1 flex-col gap-3 animate-drift"
+            className="flex flex-1 flex-col gap-3 animate-drift motion-reduce:animate-none"
             style={{ animationDuration: `${50 + c * 9}s`, animationDirection: c % 2 ? "reverse" : "normal" }}
           >
             {[...tiles, ...tiles].map(([a, b], i) => (
@@ -58,7 +59,7 @@ export function SignIn() {
     try {
       await signInWithGoogle();
     } catch (err) {
-      toast.error("ما قدرنا ندخلك", { description: (err as Error).message });
+      toast.error("ما قدرنا ندخلك", { description: friendlyError(err) });
     } finally {
       setBusy(false);
     }
@@ -71,7 +72,7 @@ export function SignIn() {
       await sendEmailLink(email.trim());
       setSent(true);
     } catch (err) {
-      toast.error("ما قدرنا نرسل الرابط", { description: (err as Error).message });
+      toast.error("ما قدرنا نرسل الرابط", { description: friendlyError(err) });
     } finally {
       setBusy(false);
     }
@@ -99,6 +100,9 @@ export function SignIn() {
           <form onSubmit={sendLink} className="mt-10 space-y-3">
             <input
               type="email"
+              name="email"
+              autoComplete="email"
+              spellCheck={false}
               required
               autoFocus
               dir="ltr"
@@ -110,7 +114,11 @@ export function SignIn() {
             <Button type="submit" variant="primary" size="lg" className="w-full" disabled={busy}>
               أرسل رابط الدخول
             </Button>
-            <button type="button" onClick={() => setEmailMode(false)} className="text-sm text-ink-faint hover:text-ink">
+            <button
+              type="button"
+              onClick={() => setEmailMode(false)}
+              className="min-h-11 px-3 text-sm text-ink-muted hover:text-ink"
+            >
               رجوع
             </button>
           </form>
@@ -123,7 +131,7 @@ export function SignIn() {
             <button
               type="button"
               onClick={() => setEmailMode(true)}
-              className="inline-flex items-center gap-1.5 text-sm text-ink-muted transition hover:text-ink"
+              className="inline-flex min-h-11 items-center gap-1.5 px-3 text-sm text-ink-muted transition hover:text-ink"
             >
               أو برابط على الإيميل
               <ArrowLeft className="size-3.5" />

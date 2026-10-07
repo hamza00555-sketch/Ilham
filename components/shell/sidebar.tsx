@@ -5,6 +5,7 @@ import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { useState } from "react";
 import { useAuth } from "@/lib/auth";
+import { usePasteShortcut } from "@/lib/keys";
 import type { ProjectDoc } from "@/lib/data/projects";
 import { cn } from "@/lib/ui";
 import { Avatar, Wordmark } from "../ui/brand";
@@ -28,6 +29,7 @@ export function Sidebar() {
   const { user } = useAuth();
   const { projects, openAdd } = useShell();
   const [creating, setCreating] = useState(false);
+  const paste = usePasteShortcut();
 
   return (
     <aside className="sticky top-0 hidden h-dvh w-64 shrink-0 flex-col border-e border-line bg-canvas px-3 py-5 md:flex">
@@ -37,11 +39,14 @@ export function Sidebar() {
 
       <Button variant="primary" className="mx-1 mt-6" onClick={() => openAdd()}>
         <Plus className="size-4" />
-        إضافة رابط
-        <kbd className="ms-auto rounded bg-canvas/10 px-1.5 font-mono text-[11px] text-canvas/60" dir="ltr">
-          ⌘V
-        </kbd>
+        أضف مرجع
       </Button>
+      <p className="mx-2 mt-2.5 text-xs text-ink-faint">
+        أو الصق رابط في أي مكان{" "}
+        <kbd className="rounded border border-line-strong px-1 font-mono text-[11px]" dir="ltr">
+          {paste}
+        </kbd>
+      </p>
 
       <nav className="mt-6 space-y-0.5">
         <Link
@@ -60,10 +65,10 @@ export function Sidebar() {
         <span className="text-xs font-medium text-ink-faint">مشاريعك</span>
         <button
           onClick={() => setCreating(true)}
-          className="rounded-md p-1 text-ink-faint transition hover:bg-raised hover:text-ink"
+          className="-me-1.5 grid size-8 place-items-center rounded-lg text-ink-muted transition hover:bg-raised hover:text-ink"
           aria-label="مشروع جديد"
         >
-          <Plus className="size-3.5" />
+          <Plus className="size-4" />
         </button>
       </div>
 

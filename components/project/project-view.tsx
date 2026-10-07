@@ -6,6 +6,7 @@ import Link from "next/link";
 import { useParams } from "next/navigation";
 import { useEffect, useMemo, useRef, useState } from "react";
 import { useItems, type ItemDoc } from "@/lib/data/items";
+import { usePasteShortcut } from "@/lib/keys";
 import type { ProjectDoc } from "@/lib/data/projects";
 import { cn, countLabel, PLATFORMS } from "@/lib/ui";
 import type { Platform } from "@/shared/types";
@@ -46,13 +47,16 @@ function ProjectBoard({ project }: { project: ProjectDoc }) {
   return (
     <div className="pt-5 md:pt-10">
       <header className="px-4 md:px-10">
-        <Link href="/" className="inline-flex items-center gap-1 text-sm text-ink-faint transition hover:text-ink md:hidden">
+        <Link
+          href="/"
+          className="-ms-2 inline-flex min-h-11 items-center gap-1 px-2 text-sm text-ink-muted transition hover:text-ink md:hidden"
+        >
           <ChevronRight className="size-4" />
           المشاريع
         </Link>
-        <div className="mt-4 flex items-end justify-between gap-4 md:mt-0">
+        <div className="mt-2 flex items-end justify-between gap-4 md:mt-0">
           <div className="min-w-0">
-            <h1 className="truncate font-arabic text-3xl font-semibold tracking-tight md:text-[40px]" dir="auto">
+            <h1 className="truncate font-arabic text-3xl font-semibold tracking-tight text-balance md:text-[40px]" dir="auto">
               {project.name}
             </h1>
             <p className="mt-2 text-sm text-ink-muted">
@@ -61,16 +65,22 @@ function ProjectBoard({ project }: { project: ProjectDoc }) {
             </p>
           </div>
           <div className="flex shrink-0 gap-2">
-            <Button variant="primary" onClick={() => openAdd({ projectId: project.id })}>
+            {/* Phones add from the bottom bar (thumb zone); desktop's primary Add lives in the sidebar. */}
+            <Button variant="secondary" className="max-md:hidden" onClick={() => openAdd({ projectId: project.id })}>
               <Plus className="size-4" />
-              <span className="max-sm:hidden">إضافة</span>
+              أضف مرجع
             </Button>
             <ProjectMenu project={project} />
           </div>
         </div>
 
-        {platforms.length > 1 ? (
-          <div className="scrollbar-none -mx-4 mt-6 flex gap-2 overflow-x-auto px-4 md:mx-0 md:px-0">
+        {/* Filters earn their place only once a board is big and varied enough to need them. */}
+        {platforms.length > 1 && (items?.length ?? 0) >= 6 ? (
+          <div
+            role="group"
+            aria-label="فلترة حسب المنصة"
+            className="scrollbar-none -mx-4 mt-5 flex gap-2 overflow-x-auto px-4 py-1.5 [mask-image:linear-gradient(to_left,transparent,black_28px)] md:mx-0 md:px-0 md:[mask-image:none]"
+          >
             <Chip active={filter === "all"} onClick={() => setFilter("all")}>
               الكل
             </Chip>
@@ -126,8 +136,10 @@ function Chip({
   return (
     <button
       onClick={onClick}
+      aria-pressed={active}
       className={cn(
-        "inline-flex h-8 shrink-0 items-center gap-2 rounded-full border px-3.5 text-[13px] transition",
+        // 32px pill, 44px tap target via the invisible inset.
+        "relative inline-flex h-8 shrink-0 items-center gap-2 rounded-full border px-3.5 text-[13px] transition-colors after:absolute after:-inset-y-1.5 after:inset-x-0",
         active ? "border-ink bg-ink text-canvas" : "border-line-strong text-ink-muted hover:border-ink-faint hover:text-ink",
       )}
     >
@@ -156,6 +168,7 @@ function Sentinel({ onVisible, busy }: { onVisible: () => void; busy: boolean })
 }
 
 function EmptyBoard({ onAdd }: { onAdd: () => void }) {
+  const paste = usePasteShortcut();
   return (
     <div className="mx-4 mt-8 grid place-items-center rounded-3xl border border-dashed border-line-strong px-6 py-20 text-center md:mx-10 md:py-28">
       <span className="grid size-12 place-items-center rounded-full bg-raised">
@@ -168,10 +181,10 @@ function EmptyBoard({ onAdd }: { onAdd: () => void }) {
       <div className="mt-8 flex items-center gap-3">
         <Button variant="primary" size="lg" onClick={onAdd}>
           <Plus className="size-4" />
-          أضف رابط
+          أضف مرجع
         </Button>
         <kbd className="hidden rounded-lg border border-line-strong px-2.5 py-1.5 font-mono text-xs text-ink-faint md:block" dir="ltr">
-          ⌘V
+          {paste}
         </kbd>
       </div>
     </div>

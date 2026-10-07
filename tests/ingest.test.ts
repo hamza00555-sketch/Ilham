@@ -1,6 +1,7 @@
 import { describe, expect, it } from "vitest";
-import { cleanTitle, youtubeId } from "@/functions/src/ingest/extractors";
+import { cleanTitle } from "@/functions/src/ingest/extractors";
 import { parseHtml } from "@/functions/src/ingest/metadata";
+import { asVideo, MAX_VIDEO_BYTES } from "@/functions/src/ingest/pipeline";
 import { assertPublicHost, looksBlocked, type FetchResult } from "@/functions/src/ingest/safeFetch";
 
 describe("parseHtml", () => {
@@ -45,12 +46,16 @@ describe("cleanTitle", () => {
   });
 });
 
-describe("youtubeId", () => {
-  it.each([
-    ["https://www.youtube.com/watch?v=dQw4w9WgXcQ", "dQw4w9WgXcQ"],
-    ["https://youtu.be/dQw4w9WgXcQ", "dQw4w9WgXcQ"],
-    ["https://www.youtube.com/shorts/abcdefghijk", "abcdefghijk"],
-  ])("%s", (url, id) => expect(youtubeId(url)).toBe(id));
+describe("asVideo", () => {
+  const pad = (head: Buffer, size = 4096) => Buffer.concat([head, Buffer.alloc(size - head.length)]);
+  it("recognizes MP4 and WebM by magic bytes, whatever the content-type says", () => {
+    expect(asVideo(pad(Buffer.from([0, 0, 0, 0x20, 0x66, 0x74, 0x79, 0x70])))?.contentType).toBe("video/mp4");
+    expect(asVideo(pad(Buffer.from([0x1a, 0x45, 0xdf, 0xa3])))?.contentType).toBe("video/webm");
+  });
+  it("rejects other files and oversize videos", () => {
+    expect(asVideo(pad(Buffer.from("<html>")))).toBeNull();
+    expect(asVideo(pad(Buffer.from([0, 0, 0, 0x20, 0x66, 0x74, 0x79, 0x70]), MAX_VIDEO_BYTES + 1))).toBeNull();
+  });
 });
 
 describe("assertPublicHost (SSRF guard)", () => {

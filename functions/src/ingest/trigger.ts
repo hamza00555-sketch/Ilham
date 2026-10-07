@@ -50,7 +50,7 @@ type IngestUpdate = Partial<Item> & Pick<Item, "ingest" | "ingestError">;
 
 /** Same link already processed in another project → copy its result, no network calls. */
 async function reuseExisting(uid: string, item: Item, selfId: string): Promise<IngestUpdate | null> {
-  if (item.hints?.imageUrl || item.hints?.imagePath) return null;
+  if (item.hints?.imageUrl || item.hints?.imagePath || item.hints?.videoUrl) return null;
   const snap = await getFirestore()
     .collection(`users/${uid}/items`)
     .where("urlHash", "==", item.urlHash)
@@ -103,20 +103,26 @@ async function ingestFresh(uid: string, item: Item): Promise<IngestUpdate> {
 
   // Versioned folder: re-processing never invalidates URLs other projects already use.
   const folder = `users/${uid}/previews/${item.urlHash}/${randomUUID().slice(0, 8)}`;
-  const upload = async (name: string, data: Buffer) => {
+  const upload = async (name: string, data: Buffer, contentType = "image/webp") => {
     const path = `${folder}/${name}`;
     const token = randomUUID();
     await bucket.file(path).save(data, {
       resumable: false,
       metadata: {
-        contentType: "image/webp",
+        contentType,
         cacheControl: "public, max-age=31536000, immutable",
         metadata: { firebaseStorageDownloadTokens: token },
       },
     });
     return downloadUrl(bucket.name, path, token);
   };
-  const [w640, w1280] = await Promise.all([upload("640.webp", processed.w640), upload("1280.webp", processed.w1280)]);
+  const [w640, w1280, video] = await Promise.all([
+    upload("640.webp", processed.w640),
+    upload("1280.webp", processed.w1280),
+    resolved.video
+      ? upload(resolved.video.contentType === "video/webm" ? "loop.webm" : "loop.mp4", resolved.video.data, resolved.video.contentType)
+      : Promise.resolve(null),
+  ]);
 
   if (item.hints?.imagePath) {
     await bucket.file(item.hints.imagePath).delete().catch(() => undefined);
@@ -130,6 +136,7 @@ async function ingestFresh(uid: string, item: Item): Promise<IngestUpdate> {
     lqip: processed.lqip,
     dominantColor: processed.dominantColor,
     palette: processed.palette,
+    video,
   };
   return {
     ...base,

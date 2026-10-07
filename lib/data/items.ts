@@ -4,6 +4,7 @@ import {
   collection,
   deleteDoc,
   doc,
+  getDocs,
   limit,
   onSnapshot,
   orderBy,
@@ -60,6 +61,13 @@ export function useItems(uid: string, projectId: string, status: ItemStatus = "k
 
 export type AddResult = { status: "added" | "duplicate"; id: string };
 
+/** Projects that already hold this link (same canonical URL). */
+export async function findProjectsWithUrl(uid: string, input: string): Promise<Set<string>> {
+  const urlHash = await hashUrl(canonicalizeUrl(input));
+  const snap = await getDocs(query(itemsCol(uid), where("urlHash", "==", urlHash), limit(50)));
+  return new Set(snap.docs.map((d) => (d.data() as Item).projectId));
+}
+
 export async function addItem(
   uid: string,
   projectId: string,
@@ -111,6 +119,7 @@ function cleanHints(hints?: IngestHints): IngestHints | null {
   if (!hints) return null;
   const out: IngestHints = {};
   if (hints.imageUrl && /^https?:\/\//i.test(hints.imageUrl)) out.imageUrl = hints.imageUrl;
+  if (hints.videoUrl && /^https?:\/\//i.test(hints.videoUrl)) out.videoUrl = hints.videoUrl;
   if (hints.title?.trim()) out.title = hints.title.trim().slice(0, 200);
   if (hints.imagePath) out.imagePath = hints.imagePath;
   return Object.keys(out).length ? out : null;

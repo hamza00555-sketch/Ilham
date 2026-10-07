@@ -24,3 +24,11 @@ export function countLabel(n: number) {
   if (n <= 10) return `${n} مراجع`;
   return `${n} مرجع`;
 }
+
+export function projectCountLabel(n: number) {
+  if (n === 0) return "ابدأ أول مشروع";
+  if (n === 1) return "مشروع واحد";
+  if (n === 2) return "مشروعين";
+  if (n <= 10) return `${n} مشاريع`;
+  return `${n} مشروع`;
+}

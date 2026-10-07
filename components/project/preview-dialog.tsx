@@ -4,6 +4,7 @@ import { ImageUp } from "lucide-react";
 import { useRef, useState, type ClipboardEvent, type FormEvent } from "react";
 import { toast } from "sonner";
 import { setPreviewFromFile, setPreviewFromUrl, type ItemDoc } from "@/lib/data/items";
+import { friendlyError } from "@/lib/errors";
 import { useShell } from "../shell/shell-context";
 import { Button } from "../ui/button";
 import { Dialog, Field, inputClass } from "../ui/dialog";
@@ -37,7 +38,7 @@ export function PreviewDialog({
       setImageUrl("");
       toast("يجهّز البريفيو…");
     } catch (err) {
-      toast.error("ما قدرنا نحدّث البريفيو", { description: (err as Error).message });
+      toast.error("ما قدرنا نحدّث البريفيو", { description: friendlyError(err) });
     } finally {
       setBusy(false);
     }
@@ -94,7 +95,10 @@ export function PreviewDialog({
           <Field label="أو رابط صورة">
             <input
               dir="ltr"
+              name="image-url"
               inputMode="url"
+              autoComplete="off"
+              spellCheck={false}
               placeholder="https://cdn…/shot.png"
               value={imageUrl}
               onChange={(e) => setImageUrl(e.target.value)}
