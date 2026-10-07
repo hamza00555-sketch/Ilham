@@ -73,7 +73,7 @@ Firebase → Firestore · Auth · Storage · Functions (ingestion, schedules) �
 
 ### الكرت — قلب المنتج
 
-- بريفيو **4:3**، الحواف `radius: 10px`، وقبل ما تحمل الصورة يطلع **blurhash** فوق اللون الغالب في الصورة. ما فيه مربعات رمادية أبداً.
+- بريفيو **4:3**، الحواف `radius: 10px`، وقبل ما تحمل الصورة يطلع **LQIP** (نسخة WebP صغيرة جداً، blur) فوق اللون الغالب في الصورة. ما فيه مربعات رمادية أبداً.
 - **Hover (كمبيوتر):** gradient من تحت + العنوان + favicon المنصة + اسم المصمم. الفيديو والـ GIF يشتغلون muted loop.
 - **جوال:** الفيديو يشتغل لما يوصل الكرت نص الشاشة (IntersectionObserver).
 - **Badge ✦** على المراجع اللي جابها الإيجنت، وفيه tooltip يقول **ليش اختارها**.
@@ -146,7 +146,7 @@ users/{uid}
 ├── items/{projectId}__{urlHash}      ← ID مركّب = dedupe مجاني
 │     projectId, urlHash, sourceUrl, canonicalUrl,
 │     platform, mediaType, title, authorName, authorUrl,
-│     preview{ w640, w1280, video?, width, height, blurhash, dominantColor },
+│     preview{ w640, w1280, video?, width, height, lqip, dominantColor, palette },
 │     colorBuckets[]     ← "teal-dark", "orange-mid" … للبحث باللون
 │     searchTokens[]     ← كلمات العنوان والتاقات (lowercase) للبحث البسيط
 │     tags[],
@@ -224,7 +224,7 @@ flowchart LR
   D --> E{Image found?}
   E -- yes --> F[Download image]
   E -- no --> G[Screenshot fallback]
-  F --> H[sharp: WebP 640 + 1280<br/>blurhash · palette · size]
+  F --> H[sharp: WebP 640 + 1280<br/>lqip · palette · size]
   G --> H
   H --> I[Cloud Storage]
   I --> U["update doc: ingest=ready + preview{}"]
@@ -233,14 +233,27 @@ flowchart LR
 
 1. **Normalize** (في `shared/normalize.ts`، مشترك بين الواجهة والـ API): نشيل `utm_*` و `fbclid` و `ref`، والـ host يصير lowercase، ونشيل الـ trailing slash. بعدها نحسب `urlHash` (SHA-256).
 2. **Create:** الواجهة تكتب الـ doc مباشرة (الـ rules تسمح لك)، والـ API يكتبه بـ Admin SDK. الحالة تبدأ `ingest: 'queued'`، و `status` يكون `inbox` إذا من الإيجنت أو `kept` إذا منك.
-3. **Trigger:** `onDocumentCreated('users/{uid}/items/{itemId}')` بـ `memory: 1GiB` و `timeoutSeconds: 120` و `retry: true`.
+3. **Trigger:** `onDocumentWritten('users/{uid}/items/{itemId}')` بـ `memory: 1GiB` و `timeoutSeconds: 120`. يشتغل كل ما `ingest` يصير `queued`: وقت الإنشاء، ولما تضغط Retry، ولما تغيّر البريفيو.
 4. **Metadata:** oEmbed أول (YouTube، Vimeo)، بعدها OpenGraph/Twitter Cards، وبعدها extractor خاص بالمنصة.
 5. **Preview:** إذا الإيجنت أرسل `imageUrl` نستخدمه، وإلا `og:image`، وإذا ما لقينا شي نسوي screenshot (خدمة مثل Microlink / ScreenshotOne، أو Puppeteer داخل Function بـ 2GiB).
-6. **Processing:** `sharp` يشتغل عادي في Cloud Functions، ويطلع مقاسين WebP (640 و 1280) + blurhash + palette + `colorBuckets` + الأبعاد. تقريباً 150KB للمرجع.
+6. **Processing:** `sharp` يشتغل عادي في Cloud Functions، ويطلع مقاسين WebP (640 و 1280) + LQIP + palette + `colorBuckets` + الأبعاد. في التجربة الفعلية: 2 لـ 35KB لكل مقاس.
 7. **Store:** `users/{uid}/previews/{urlHash}/640.webp` مع `Cache-Control: public, max-age=31536000, immutable`، والرابط ناخذه من `getDownloadURL()` في Admin SDK.
 8. **Update:** `ingest: 'ready'` + `preview{}`. والواجهة تتحدث لحالها.
 
-**Retries بأمان:** الـ function لازم تكون idempotent (إذا البريفيو موجود في Storage تتخطى المعالجة)، وتتجاهل الأحداث اللي عمرها أكثر من 10 دقايق، وبعد 3 محاولات فاشلة تحط `ingest: 'failed'` والكرت يطلع فيه زر "Retry".
+**Retries بأمان:** الـ function تحجز المرجع بـ transaction (`queued → processing`) عشان ما يتعالج مرتين، وإذا نفس الرابط جاهز في مشروع ثاني تنسخ نتيجته بدون أي طلب للشبكة. وإذا فشلت تحط `ingest: 'failed'` مع السبب (`blocked` · `no-image` · `invalid-image`)، والكرت يطلع فيه "أضف بريفيو" و Retry. ما نستخدم `retry: true` حق Firebase عشان ما يدخل في loop.
+
+### اللي طلع من التجربة الحقيقية: المواقع اللي تحجب السيرفرات
+
+| المنصة | النتيجة من السيرفر | الحل في Ilham |
+|---|---|---|
+| YouTube · Vimeo | ✅ oEmbed رسمي | تلقائي |
+| Mobbin · Godly · Linear · أغلب المواقع | ✅ OpenGraph | تلقائي |
+| روابط الصور المباشرة (Pinterest CDN…) | ✅ | تلقائي |
+| **Dribbble** | ⛔ AWS WAF challenge (202) | Bookmarklet، أو رفع screenshot، أو الإيجنت يرسل `imageUrl` |
+| **Behance · ArtStation** | ⛔ 403 | نفس الحل |
+| Microlink المجاني | ⛔ يرفض Dribbble (يبي Pro) | `MICROLINK_API_KEY` اختياري |
+
+يعني المرجع **دايم ينحفظ ويفتح المصدر لما تضغطه**. إذا ما قدرنا نجيب صورته، يطلع كرت fallback بهوية المنصة وعنوان مأخوذ من الرابط، وتقدر تضيف له بريفيو بضغطة.
 
 **Extractors** — كل منصة لها ملف صغير بنفس الـ interface:
 
@@ -425,7 +438,7 @@ ilham/
 │       ├── ingest/
 │       │   ├── onItemCreated.ts
 │       │   ├── metadata.ts
-│       │   ├── preview.ts             # sharp · blurhash · palette
+│       │   ├── image.ts               # sharp · lqip · palette
 │       │   └── extractors/            # dribbble.ts · behance.ts · vimeo.ts …
 │       └── schedule/dailyCurate.ts
 ├── firestore.rules
@@ -450,7 +463,7 @@ ilham/
 
 > التقديرات على افتراض إننا نبني مع Claude Code.
 
-### Phase 0 — Foundation · تقريباً يوم
+### Phase 0 — Foundation · ✅ الكود جاهز (باقي إعداد Firebase من عندك)
 - Firebase project على **Blaze** + budget alert + كل شي على `us-central1`
 - تفعيل Firestore و Auth (Google + Email link) و Storage و Functions
 - Emulators + Firebase MCP
@@ -459,7 +472,7 @@ ilham/
 
 **✅ Done when:** تسجل دخول بـ Google على رابط Vercel، والـ rules تمنع أي أحد غيرك.
 
-### Phase 1 — MVP Core · تقريباً أسبوع
+### Phase 1 — MVP Core · ✅ مبني ومجرّب على الـ Emulators
 - Projects CRUD + covers تلقائية
 - Add by URL: Paste، `Cmd+V`، FAB
 - Ingestion v1: `onItemCreated` → oEmbed/OG → preview → sharp → Storage
@@ -520,7 +533,7 @@ ilham/
 | فاتورة Blaze تفاجئك | Budget alerts + كل شي في `us-central1` + بريفيوهات WebP صغيرة + `Cache-Control` طويل |
 | Firestore يحاسب على كل قراءة | Pagination بـ cursor، والغلاف محفوظ في doc المشروع، والـ listeners بس على الصفحة المفتوحة |
 | ما فيه full-text search في Firestore | `searchTokens[]` للبحث البسيط الحين، و semantic search في Phase 4 |
-| Function تعيد المحاولة للأبد | Idempotent + تتجاهل الأحداث القديمة + `ingest: 'failed'` بعد 3 محاولات |
+| Function تعيد المحاولة للأبد | Claim بـ transaction + بدون retry تلقائي + `ingest: 'failed'` وزر Retry يدوي |
 | مفاتيح API تتسرب | hashed + scopes + `lastUsedAt` + إلغاء بضغطة |
 
 ---

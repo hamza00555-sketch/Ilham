@@ -1,0 +1,19 @@
+rules_version = '2';
+
+service firebase.storage {
+  match /b/{bucket}/o {
+    // Previews are written by Cloud Functions only and shown through download-token URLs.
+    match /users/{uid}/previews/{allPaths=**} {
+      allow read, write: if false;
+    }
+
+    // Images the user uploads to replace a preview (e.g. a screenshot of a blocked page).
+    match /users/{uid}/uploads/{file} {
+      allow read: if request.auth != null && request.auth.uid == uid;
+      allow create: if request.auth != null
+                    && request.auth.uid == uid
+                    && request.resource.size < 15 * 1024 * 1024
+                    && request.resource.contentType.matches('image/.*');
+    }
+  }
+}
