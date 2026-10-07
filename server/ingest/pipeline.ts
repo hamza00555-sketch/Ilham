@@ -1,4 +1,5 @@
 import type { IngestHints, MediaType, Platform } from "@/shared/types";
+import { cleanDescription, detectTools, normalizeDate } from "@/shared/credits";
 import { titleFromUrl } from "@/shared/normalize";
 import { cleanTitle, extractViaApi } from "./extractors";
 import { parseHtml } from "./metadata";
@@ -22,6 +23,10 @@ export interface Resolved {
   title: string;
   authorName: string | null;
   authorUrl: string | null;
+  /** The creator's words about the work, its publish date, and the software they name. */
+  description: string | null;
+  publishedAt: string | null;
+  tools: string[];
   mediaType: MediaType;
   image: Buffer | null;
   /** A short muted loop to play on hover, when the source offers a real video file. */
@@ -50,6 +55,9 @@ export async function resolveLink(
   let title: string | undefined;
   let authorName: string | undefined;
   let authorUrl: string | undefined;
+  let description: string | undefined;
+  let publishedAt: string | undefined;
+  let keywords: string | undefined;
   let mediaType: MediaType = "image";
   const imageCandidates: string[] = [];
   const videoCandidates: string[] = [];
@@ -59,7 +67,7 @@ export async function resolveLink(
 
   const api = await extractViaApi(url, platform);
   if (api) {
-    ({ title, authorName, authorUrl } = api);
+    ({ title, authorName, authorUrl, description, publishedAt } = api);
     if (api.mediaType) mediaType = api.mediaType;
     if (api.imageUrl) imageCandidates.push(api.imageUrl);
   } else {
@@ -78,6 +86,8 @@ export async function resolveLink(
         const cleaned = cleanTitle(meta.title, platform, meta.siteName);
         if (usefulTitle(cleaned.title, platform)) title = cleaned.title;
         authorName = cleaned.author ?? meta.author;
+        authorUrl = meta.authorUrl;
+        ({ description, publishedAt, keywords } = meta);
         if (meta.video || platform === "vimeo" || platform === "youtube") mediaType = "video";
         else if (!meta.image) mediaType = "website";
         if (meta.image) imageCandidates.push(meta.image);
@@ -101,6 +111,8 @@ export async function resolveLink(
       const cleaned = cleanTitle(ml.title, platform);
       if (usefulTitle(cleaned.title, platform)) title ??= cleaned.title;
       authorName ??= cleaned.author ?? ml.author;
+      description ??= ml.description;
+      publishedAt ??= ml.date;
       if (ml.imageUrl) imageCandidates.push(ml.imageUrl);
       if (ml.screenshotUrl) {
         imageCandidates.push(ml.screenshotUrl);
@@ -127,10 +139,15 @@ export async function resolveLink(
   }
   if (video) mediaType = "video";
 
+  const finalTitle = title || titleFromUrl(url);
+  const about = cleanDescription(description, finalTitle);
   return {
-    title: title || titleFromUrl(url),
+    title: finalTitle,
     authorName: authorName ?? null,
     authorUrl: authorUrl ?? null,
+    description: about,
+    publishedAt: normalizeDate(publishedAt),
+    tools: detectTools(finalTitle, about, keywords),
     mediaType,
     image,
     video,

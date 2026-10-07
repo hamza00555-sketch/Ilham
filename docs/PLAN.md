@@ -310,11 +310,14 @@ curl -X POST https://ilham.vercel.app/api/v1/projects/vr-onboarding/items \
 | `list_projects()` | المشاريع |
 | `get_project(slug)` | الـ brief + الإحصائيات + آخر العناصر |
 | `create_project(name, brief?)` | مشروع جديد |
-| `add_inspiration(project, items[])` | يضيف batch |
+| `add_inspiration(project, items[])` | يضيف batch، ومع كل مرجع معلوماته (صاحبه، ملف أعماله، التاريخ، البرامج، كيف انسوى، ملاحظة) |
+| `get_item(project, id)` | مرجع كامل: معلوماته ووصفه والملاحظات وردودك |
+| `update_item(project, id, …)` | احتفظ / ارمِ / وسوم، أو يصحح معلومات المرجع بعد ما يبحث |
+| `add_note(project, id, text)` | يترك لك ملاحظة على مرجع |
 | `get_taste(project)` | ذوقك عشان يتعلم منه |
 | `start_run(project, query)` / `finish_run(runId, summary)` | سجل الجلسات |
 
-مبني بـ `mcp-handler` 2 (MCP SDK v2، stateless). Tools: `list_projects` · `get_project` · `get_taste` · `create_project` · `add_inspiration` · `update_item` · `start_run` · `finish_run`. الربط (الأوامر الجاهزة بمفتاحك في `/settings`):
+مبني بـ `mcp-handler` 2 (MCP SDK v2، stateless). Tools: `list_projects` · `get_project` · `get_taste` · `create_project` · `add_inspiration` · `get_item` · `update_item` · `add_note` · `start_run` · `finish_run`. الربط (الأوامر الجاهزة بمفتاحك في `/settings`):
 
 ```bash
 # Claude Code
@@ -476,7 +479,8 @@ ilham/
 ### Phase 2 — Agent Layer · ✅ مبني ومجرّب على الـ Emulators
 - ✅ `apiKeys` (sha256، المفتاح يظهر مرة وحدة) + صفحة إدارتها (`/settings`) فيها إعداد Codex و Claude Code والتعليمات و curl
 - ✅ REST v1 + zod + batch لين 50 + dedupe (حتى المرفوض ما يرجع)، والمعالجة تكمل بعد الرد بـ `after()`
-- ✅ MCP server (`mcp-handler` 2، MCP SDK v2): 8 tools
+- ✅ MCP server (`mcp-handler` 2، MCP SDK v2): 10 tools
+- ✅ صفحة المرجع (`?ref=`): الفيديو، صاحب العمل وملف أعماله، التاريخ، وصفه، كيف انسوى، البرامج، والملاحظات بينك وبين الوكيل (`get_item` / `add_note`)
 - ✅ Inbox داخل المشروع: احتفظ / ارمِ (مع تراجع) / احتفظ بالكل، والسبب تحت كل كرت
 - ✅ Badge ✦ + reason + سجل `agentRuns`
 - ⏳ Swipe بالجوال واختصارات K / X: لاحقاً

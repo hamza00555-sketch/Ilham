@@ -1,6 +1,6 @@
 "use client";
 
-import { ArrowUpRight, ImagePlus, Play } from "lucide-react";
+import { ImagePlus, MessageCircle, Play } from "lucide-react";
 import { motion } from "motion/react";
 import { useEffect, useRef, useState, type ReactNode } from "react";
 import type { ItemDoc } from "@/lib/data/items";
@@ -9,6 +9,7 @@ import { cn, PLATFORMS } from "@/lib/ui";
 import { displayHost } from "@/shared/normalize";
 import { motionSource } from "@/shared/video";
 import { Spark } from "../ui/brand";
+import { openRef } from "./item-detail";
 import { ItemMenu } from "./item-menu";
 import { MotionLayer } from "./motion-layer";
 import { PreviewDialog } from "./preview-dialog";
@@ -30,6 +31,9 @@ export function ItemCard({ item, index, children }: { item: ItemDoc; index: numb
   const byline = item.authorName ?? (sourceName === title ? null : sourceName);
   const isVideo = item.mediaType === "video" || !!preview?.video;
   const isAgent = item.addedBy === "agent";
+  const notes = item.notes ?? [];
+  // Lime when the latest word is an agent's: something it wants you to read.
+  const agentSpoke = notes.at(-1)?.by === "agent";
 
   // Tall shots and pages crop from the top, landscape from the center. Very wide OG cards
   // (≈1.91:1, often text-heavy) are shown whole on their own dominant color instead.
@@ -53,13 +57,25 @@ export function ItemCard({ item, index, children }: { item: ItemDoc; index: numb
       transition={{ duration: 0.3, ease: [0.23, 1, 0.32, 1], delay: Math.min(index, 12) * 0.03 }}
       className="group relative"
     >
+      {/* Opens the reference's detail sheet; ⌘/Ctrl-click opens it in a new tab. */}
       <a
-        href={item.sourceUrl}
-        target="_blank"
-        rel="noopener noreferrer"
+        href={`?ref=${item.id}`}
+        onClick={(e) => {
+          if (e.metaKey || e.ctrlKey || e.shiftKey || e.altKey || e.button !== 0) return;
+          e.preventDefault();
+          openRef(item.id);
+        }}
         className="relative block aspect-[4/3] overflow-hidden rounded-card bg-raised"
         style={preview ? { backgroundColor: preview.dominantColor } : undefined}
-        aria-label={[title, sourceName, isVideo && "فيديو", isAgent && "أضافه الإيجنت"].filter(Boolean).join("، ")}
+        aria-label={[
+          title,
+          sourceName,
+          isVideo && "فيديو",
+          isAgent && "أضافه الإيجنت",
+          notes.length === 1 ? "ملاحظة وحدة" : notes.length > 1 && `${notes.length} ملاحظات`,
+        ]
+          .filter(Boolean)
+          .join("، ")}
       >
         {preview ? (
           <>
@@ -97,19 +113,11 @@ export function ItemCard({ item, index, children }: { item: ItemDoc; index: numb
 
       {source && motionActive ? <MotionLayer source={source} /> : null}
 
-      {/* Chrome over the work. Never takes clicks: the whole card opens the source. */}
+      {/* Chrome over the work. Never takes clicks: the whole card opens the detail sheet. */}
       <div
         aria-hidden
         className="pointer-events-none absolute inset-x-0 top-0 aspect-[4/3] overflow-hidden rounded-card"
       >
-        {preview ? (
-          <span className="absolute inset-x-0 bottom-0 hidden justify-end bg-gradient-to-t from-black/70 to-transparent p-3 pt-12 opacity-0 transition-opacity duration-200 group-hover:opacity-100 md:flex">
-            <span className="inline-flex items-center gap-1.5 rounded-full bg-black/45 px-3 py-1.5 text-xs font-medium text-white backdrop-blur">
-              افتح في <bdi>{sourceName}</bdi>
-              <ArrowUpRight className="size-3.5" />
-            </span>
-          </span>
-        ) : null}
         <span className="absolute top-2.5 start-2.5 flex gap-1.5">
           {isAgent ? (
             <span className="grid size-6 place-items-center rounded-full bg-black/60 text-signal backdrop-blur">
@@ -124,6 +132,17 @@ export function ItemCard({ item, index, children }: { item: ItemDoc; index: numb
               )}
             >
               <Play className="size-2.5 fill-white text-white" />
+            </span>
+          ) : null}
+          {notes.length ? (
+            <span
+              className={cn(
+                "inline-flex h-6 items-center gap-1 rounded-full bg-black/60 px-2 text-[11px] font-medium tabular-nums backdrop-blur",
+                agentSpoke ? "text-signal" : "text-white",
+              )}
+            >
+              <MessageCircle className="size-3" />
+              {notes.length}
             </span>
           ) : null}
         </span>

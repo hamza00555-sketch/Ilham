@@ -218,16 +218,24 @@ Gently rounded and consistent: references and covers at 10px, fields and menus a
 - **Background:** the preview's dominant color under a blurred LQIP, and the WebP fading in on top. Very wide OG images (wider than 1.85:1) are contained on the dominant color instead of cropped.
 - **Shadow Strategy:** none (see the Hairline Rule).
 - **States:** pending shows a shimmer with a thin scanning bar and the host name. Failed shows a fallback tile tinted with the platform color, its label and title, and an "أضف بريفيو" action. Ready shows the work.
-- **Hover (desktop):** the image scales to 1.02 (300ms) and a single pill appears: "افتح في {platform or host} ↗". The caption below already carries title and byline, so the overlay never repeats them.
+- **Hover (desktop):** the image scales to 1.02 (300ms). No overlay text: the caption below already carries title and byline.
+- **Click:** opens the Reference Sheet (⌘/Ctrl-click opens it in a new tab). The source is one tap further, from the sheet or the menu.
+- **Badges (top start):** ✦ for agent picks, ▶ for motion, and a note count that turns Signal Lime when the latest note is an agent's.
 - **Caption:** platform dot, title, byline at the end edge.
 - **Menu:** a quiet 28px dot inside a 44px hit area at the top end corner; on desktop it appears on hover or focus.
 
 ### Living Preview (signature)
 Motion references come alive: after a 280ms hover dwell on desktop, or when the card crosses the middle band of a phone screen. A stored muted loop (`loop.mp4`) plays if we have one; otherwise the official muted, chrome-less YouTube or Vimeo embed. It fades in (300ms) only after the player reports playback, plays one at a time, and is skipped entirely for reduced motion or Data Saver.
 
+### Reference Sheet
+The reference up close, at `?ref=<id>` so Back closes it. Desktop: a 1320px max panel, the work on the start side on pure black with its blurred LQIP glowing behind, the story in a 400–440px column on the end side with a header (prev/next, `n / total`, menu, close), a scrolling body and the note composer pinned at the bottom. Phone: a full-height sheet that scrolls as one column, header and composer sticky. Video plays in the platform's own player (muted, with controls) or our stored clip.
+- **Story order:** platform · publish date, title, creator (avatar initial, name, "ملف الأعمال · host ↗"), "افتح في {platform}" + copy link, the agent's pick box in the Inbox (keep / discard, then the next pick), then the sections "عن العمل" (the creator's own words, folded past six lines), "كيف انسوى", "الأدوات", "الوسوم", a dashed "ناقص: …" row that copies a research request for an agent, and "الملاحظات".
+- **Notes:** agents sign with their key name beside a lime ✦; your notes carry your avatar and can be deleted. Long-form text aligns to its own language's start edge; one-line titles stay on the UI's edge.
+- **Keys:** ← next, → previous (right-to-left), Esc closes; Enter sends a note on desktop, Shift+Enter breaks the line.
+
 ### Inputs / Fields
 - **Style:** 44px tall, table-black well, strong hairline, 12px radius, 15px text.
-- **Focus:** the border brightens to ink (no extra outline ring).
+- **Focus:** the border brightens to ink (no extra outline ring; the global focus ring lives in the base layer so this can replace it).
 - **Selects:** carry a chevron at the end edge.
 
 ### Navigation

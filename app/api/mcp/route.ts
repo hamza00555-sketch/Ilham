@@ -1,11 +1,20 @@
 import { createMcpHandler, withMcpAuth } from "mcp-handler";
 import { z } from "zod";
 import { resolveKey } from "@/server/agent/keys";
-import { addItemsInput, createProjectInput, finishRunInput, startRunInput, updateItemInput } from "@/server/agent/schemas";
+import {
+  addItemsInput,
+  addNoteInput,
+  createProjectInput,
+  finishRunInput,
+  startRunInput,
+  updateItemInput,
+} from "@/server/agent/schemas";
 import {
   addItems,
+  addNote,
   createProject,
   finishRun,
+  getItem,
   getProject,
   getTaste,
   listProjects,
@@ -19,10 +28,12 @@ import { HttpError } from "@/server/auth";
 export const maxDuration = 300;
 
 const slug = z.string().min(1).max(64).describe("Project slug, from list_projects.");
+const itemId = z.string().min(1).max(140).describe("Item id, from get_project, list results or add_inspiration.");
 
 type Ctx = { http?: { authInfo?: { extra?: Record<string, unknown> } } };
 const uidOf = (ctx: Ctx) => ctx.http?.authInfo?.extra?.uid as string;
 const originOf = (ctx: Ctx) => ctx.http?.authInfo?.extra?.origin as string;
+const agentNameOf = (ctx: Ctx) => (ctx.http?.authInfo?.extra?.agentName as string | undefined) ?? null;
 
 /** Tool results as JSON text; failures as tool errors the agent can read and recover from. */
 async function run(work: () => Promise<unknown>) {
@@ -86,20 +97,45 @@ const handler = createMcpHandler(
       {
         title: "Add inspiration",
         description:
-          "Adds up to 50 references to a project's Inbox in one batch; the user keeps or discards them. Send the creator's original page as url, plus imageUrl when you have a direct high-res image, 3-5 namespaced tags, and a one-sentence reason tied to the brief. Duplicates are skipped automatically.",
+          "Adds up to 50 references to a project's Inbox in one batch; the user keeps or discards them. Send the creator's original page as url, plus imageUrl when you have a direct high-res image, 3-5 namespaced tags, and a one-sentence reason tied to the brief. Include the credits you found: creator, creatorUrl (their portfolio), publishedAt, tools (software used) and process (how it was made). Duplicates are skipped automatically.",
         inputSchema: addItemsInput.extend({ project: slug }),
       },
-      async ({ project, items, agentRunId }, ctx) => run(() => addItems(uidOf(ctx), project, items, agentRunId)),
+      async ({ project, items, agentRunId }, ctx) =>
+        run(() => addItems(uidOf(ctx), project, items, agentRunId, agentNameOf(ctx))),
+    );
+
+    server.registerTool(
+      "get_item",
+      {
+        title: "Get item",
+        description:
+          "One reference in full: its credits (creator, creatorUrl, publishedAt, tools, process), the creator's own description, and the notes on it, including the user's replies to you.",
+        inputSchema: z.object({ project: slug, id: itemId }),
+        annotations: { readOnlyHint: true },
+      },
+      async ({ project, id }, ctx) => run(() => getItem(uidOf(ctx), originOf(ctx), project, id)),
     );
 
     server.registerTool(
       "update_item",
       {
         title: "Update item",
-        description: "Changes an item's status (inbox / kept / discarded), tags or note. Item ids come from get_project or add_inspiration.",
-        inputSchema: updateItemInput.extend({ project: slug, id: z.string().min(1).max(140) }),
+        description:
+          "Changes an item's status (inbox / kept / discarded) or tags, or fills in its credits after researching it: creator, creatorUrl (portfolio), publishedAt, tools (software) and process (how it was made). Pass null to clear a credit.",
+        inputSchema: updateItemInput.extend({ project: slug, id: itemId }),
       },
       async ({ project, id, ...patch }, ctx) => run(() => updateItem(uidOf(ctx), project, id, patch)),
+    );
+
+    server.registerTool(
+      "add_note",
+      {
+        title: "Add note",
+        description:
+          "Leaves a note for the user on one reference: something worth knowing about it, a question, or an answer to their note. Shown on the reference with your name.",
+        inputSchema: addNoteInput.extend({ project: slug, id: itemId }),
+      },
+      async ({ project, id, text }, ctx) => run(() => addNote(uidOf(ctx), project, id, text, agentNameOf(ctx))),
     );
 
     server.registerTool(
@@ -134,7 +170,7 @@ const authed = withMcpAuth(
       token: token!,
       clientId: owner.keyId,
       scopes: ["read", "write"],
-      extra: { uid: owner.uid, origin: new URL(request.url).origin },
+      extra: { uid: owner.uid, origin: new URL(request.url).origin, agentName: owner.name },
     };
   },
   { required: true },

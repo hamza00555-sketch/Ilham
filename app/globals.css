@@ -90,9 +90,13 @@ html[dir="rtl"] [dir="auto"] {
   text-align: right;
 }
 
-:focus-visible {
-  outline: 2px solid var(--color-ink);
-  outline-offset: 2px;
+/* In the base layer so a component's own focus style (outline-none + a bright border on fields,
+   sheets that take focus without a ring) can replace it. */
+@layer base {
+  :focus-visible {
+    outline: 2px solid var(--color-ink);
+    outline-offset: 2px;
+  }
 }
 
 @utility shimmer-surface {

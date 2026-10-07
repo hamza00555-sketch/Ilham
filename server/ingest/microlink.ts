@@ -7,6 +7,8 @@ import { safeFetch } from "./safeFetch";
 export interface MicrolinkMeta {
   title?: string;
   author?: string;
+  description?: string;
+  date?: string;
   imageUrl?: string;
   screenshotUrl?: string;
 }
@@ -33,6 +35,8 @@ export async function microlink(url: string, opts: { screenshot?: boolean } = {}
     return {
       title: data.title ?? undefined,
       author: data.author ?? undefined,
+      description: data.description ?? undefined,
+      date: data.date ?? undefined,
       imageUrl: data.image?.url ?? undefined,
       screenshotUrl: data.screenshot?.url ?? undefined,
     };

@@ -64,7 +64,14 @@ export async function revokeKey(uid: string, id: string) {
 }
 
 /** The owner behind an `ilham_sk_…` key, or null. Touches lastUsedAt at most once a minute. */
-export async function resolveKey(key: string | undefined | null): Promise<{ uid: string; keyId: string } | null> {
+export interface KeyOwner {
+  uid: string;
+  keyId: string;
+  /** The key's name ("Codex"…), shown on the agent's notes. */
+  name: string;
+}
+
+export async function resolveKey(key: string | undefined | null): Promise<KeyOwner | null> {
   if (!key?.startsWith(PREFIX) || key.length > 80) return null;
   const id = hash(key);
   const ref = admin().db.doc(`apiKeys/${id}`);
@@ -72,11 +79,11 @@ export async function resolveKey(key: string | undefined | null): Promise<{ uid:
   if (!snap.exists) return null;
   const last = (snap.get("lastUsedAt") as Timestamp | null)?.toMillis() ?? 0;
   if (Date.now() - last > 60_000) void ref.update({ lastUsedAt: FieldValue.serverTimestamp() }).catch(() => undefined);
-  return { uid: snap.get("ownerId") as string, keyId: id };
+  return { uid: snap.get("ownerId") as string, keyId: id, name: (snap.get("name") as string | undefined) ?? "Agent" };
 }
 
 /** For REST v1: `Authorization: Bearer ilham_sk_…`. */
-export async function requireAgent(request: Request): Promise<{ uid: string; keyId: string }> {
+export async function requireAgent(request: Request): Promise<KeyOwner> {
   const key = request.headers.get("authorization")?.match(/^Bearer (.+)$/)?.[1]?.trim();
   const owner = await resolveKey(key);
   if (!owner) throw new HttpError(401, "invalid-key");

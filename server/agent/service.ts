@@ -1,9 +1,10 @@
 import "server-only";
 import { FieldValue, type Timestamp } from "firebase-admin/firestore";
 import { after } from "next/server";
-import { buildItem, cleanTags, isWebUrl } from "@/shared/items";
+import { buildItem, cleanTags, creditFields, isWebUrl, makeNote, MAX_NOTES, type CreditsInput } from "@/shared/items";
+import { searchTokens } from "@/shared/normalize";
 import { slugify } from "@/shared/slug";
-import type { Item, ItemStatus, Project } from "@/shared/types";
+import type { Item, ItemNote, ItemStatus, Project } from "@/shared/types";
 import { HttpError } from "../auth";
 import { admin } from "../firebase-admin";
 import { runIngest } from "../ingest/run";
@@ -89,8 +90,12 @@ type ItemSummary = {
   addedBy: string;
   tags: string[];
   reason: string | null;
+  creator: string | null;
   ingest: string;
   addedAt: string | null;
+  notes: number;
+  /** "user" when the latest note on it is the user's: they wrote something you may want to answer. */
+  lastNoteBy: ItemNote["by"] | null;
 };
 
 const itemSummary = (id: string, i: Item): ItemSummary => ({
@@ -102,8 +107,11 @@ const itemSummary = (id: string, i: Item): ItemSummary => ({
   addedBy: i.addedBy,
   tags: i.tags ?? [],
   reason: i.reason ?? null,
+  creator: i.authorName ?? null,
   ingest: i.ingest,
   addedAt: iso(i.addedAt),
+  notes: i.notes?.length ?? 0,
+  lastNoteBy: i.notes?.at(-1)?.by ?? null,
 });
 
 async function itemsWithStatus(uid: string, projectId: string, status: ItemStatus, limit: number) {
@@ -153,13 +161,14 @@ export async function getTaste(uid: string, slug: string) {
   };
 }
 
-export interface AgentItemInput {
+export interface AgentItemInput extends CreditsInput {
   url: string;
   imageUrl?: string;
   videoUrl?: string;
   title?: string;
   tags?: string[];
   reason?: string;
+  note?: string;
 }
 
 export type AddOutcome = { url: string; id?: string; status: "queued" | "duplicate" | "invalid" };
@@ -174,6 +183,7 @@ export async function addItems(
   slug: string,
   items: AgentItemInput[],
   runId?: string | null,
+  agentName: string | null = null,
 ): Promise<{ project: string; results: AddOutcome[] }> {
   if (!items.length) throw new HttpError(400, "no-items");
   if (items.length > MAX_BATCH) throw new HttpError(400, "too-many-items");
@@ -194,6 +204,9 @@ export async function addItems(
       tags: input.tags,
       reason: input.reason,
       agentRunId: runId ?? null,
+      credits: input,
+      note: input.note,
+      agentName,
     });
     try {
       await db.doc(`users/${uid}/items/${id}`).create({
@@ -233,24 +246,61 @@ async function ingestAll(uid: string, ids: string[]) {
   await Promise.all(Array.from({ length: Math.min(INGEST_CONCURRENCY, ids.length) }, worker));
 }
 
-/** Keep, discard or annotate one item. */
-export async function updateItem(
-  uid: string,
-  slug: string,
-  id: string,
-  patch: { status?: ItemStatus; tags?: string[]; note?: string | null },
-) {
+async function itemInProject(uid: string, slug: string, id: string) {
   const { id: projectId } = await projectBySlug(uid, slug);
   const ref = admin().db.doc(`users/${uid}/items/${id}`);
   const snap = await ref.get();
   if (!snap.exists || snap.get("projectId") !== projectId) throw new HttpError(404, "item-not-found");
-  const update: Record<string, unknown> = { updatedAt: FieldValue.serverTimestamp() };
+  return { projectId, ref, item: snap.data() as Item };
+}
+
+/** Keep, discard, retag, or correct the credits of one item. */
+export async function updateItem(
+  uid: string,
+  slug: string,
+  id: string,
+  patch: { status?: ItemStatus; tags?: string[] } & CreditsInput,
+) {
+  const { projectId, ref, item } = await itemInProject(uid, slug, id);
+  const update: Partial<Item> = creditFields(patch);
   if (patch.status) update.status = patch.status;
   if (patch.tags) update.tags = cleanTags(patch.tags);
-  if (patch.note !== undefined) update.note = patch.note?.trim().slice(0, 1000) || null;
-  await ref.update(update);
+  const next = { ...item, ...update };
+  if (update.tags || update.tools || update.authorName !== undefined) {
+    update.searchTokens = searchTokens(next.title, next.authorName, ...(next.tools ?? []), ...(next.tags ?? []));
+  }
+  await ref.update({ ...update, updatedAt: FieldValue.serverTimestamp() });
   if (patch.status) await syncProjects(uid, [projectId]);
-  return itemSummary(id, { ...(snap.data() as Item), ...(update as Partial<Item>) });
+  return itemSummary(id, next);
+}
+
+/** Everything about one reference: its credits, the creator's own description, and the notes on it. */
+export async function getItem(uid: string, origin: string, slug: string, id: string) {
+  const { item } = await itemInProject(uid, slug, id);
+  return {
+    ...itemSummary(id, item),
+    mediaType: item.mediaType,
+    image: item.preview?.w1280 ?? null,
+    creatorUrl: item.authorUrl ?? null,
+    publishedAt: item.publishedAt ?? null,
+    description: item.description ?? null,
+    tools: item.tools ?? [],
+    process: item.process ?? null,
+    notes: (item.notes ?? []).map(({ by, name, text, at }) => ({ by, name, text, at })),
+    appUrl: `${origin}/p/${encodeURIComponent(slug)}?ref=${id}`,
+  };
+}
+
+/** Leaves a note for the user on one reference. Only the latest 100 notes are kept. */
+export async function addNote(uid: string, slug: string, id: string, text: string, agentName: string | null) {
+  const { ref } = await itemInProject(uid, slug, id);
+  const note = makeNote("agent", text, agentName);
+  if (!note) throw new HttpError(400, "empty-note");
+  await admin().db.runTransaction(async (tx) => {
+    const notes = ((await tx.get(ref)).get("notes") as ItemNote[] | undefined) ?? [];
+    tx.update(ref, { notes: [...notes, note].slice(-MAX_NOTES), updatedAt: FieldValue.serverTimestamp() });
+  });
+  return { id, note: { by: note.by, name: note.name, text: note.text, at: note.at } };
 }
 
 /** A run groups one search session: what the agent was asked, how many it added, its summary. */

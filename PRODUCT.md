@@ -21,15 +21,16 @@ References come from anywhere (Dribbble, Behance, YouTube, Vimeo, Awwwards, any 
 ## Operating Context
 
 - Capture: paste or drop a link, the add dialog, a bookmarklet that runs on the page being viewed, and the Android share sheet (`/add`).
-- Automation: an agent adds references through an API/MCP layer (planned, Phase 2); its picks carry a reason and land in an Inbox for triage.
+- Automation: an agent adds references through an API/MCP layer; its picks carry a reason and land in an Inbox for triage.
+- Every reference has a sheet with its credits (creator and portfolio, publish date, the creator's own description, how it was made, software used) and a notes thread where agents and the owner talk about that piece. Credits come from the page itself first; agents research the rest.
 - Some platforms block server-side fetching (Dribbble, Behance, ArtStation). Those references are still saved and still open the source; a preview can be supplied by upload, image URL, the bookmarklet, or the agent.
 
 ## Capabilities and Constraints
 
-- Built today: projects, capture paths, preview pipeline (oEmbed / OpenGraph / browser fallback → WebP previews), dedupe per project, move/delete with undo, live updates.
+- Built today: projects, capture paths, preview pipeline (oEmbed / OpenGraph / browser fallback → WebP previews), dedupe per project, move/delete with undo, live updates, the agent API/MCP with the Inbox, and the reference sheet with credits and notes.
 - Stack: Next.js on Vercel (UI + ingest route handlers + Vercel Blob for previews), Firebase on the free Spark plan (Firestore, Auth). No Blaze.
 - Data is currently scoped to a single owner (`users/{uid}`). **Open decision:** team workspaces (shared projects, members, roles) are required by the confirmed audience but not designed yet.
-- Planned: Inbox and agent API/MCP (Phase 2), scheduled curation (Phase 3), search, color and semantic search, Present Mode and client share links (Phase 4). See `docs/PLAN.md`.
+- Planned: scheduled curation (Phase 3), search, color and semantic search, Present Mode and client share links (Phase 4). See `docs/PLAN.md`.
 
 ## Brand Commitments
 

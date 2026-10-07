@@ -16,6 +16,7 @@ import { useShell } from "../shell/shell-context";
 import { Button } from "../ui/button";
 import { Spark } from "../ui/brand";
 import { ItemCard } from "./item-card";
+import { ItemDetail } from "./item-detail";
 import { ProjectMenu } from "./project-menu";
 
 export function ProjectView() {
@@ -147,6 +148,7 @@ function KeptView({ project }: { project: ProjectDoc }) {
           {hasMore ? <Sentinel onVisible={loadMore} busy={loadingMore} /> : null}
         </>
       )}
+      <ItemDetail ids={visible?.map((i) => i.id) ?? []} />
     </>
   );
 }
@@ -209,6 +211,7 @@ function InboxView({ project, onBack }: { project: ProjectDoc; onBack: () => voi
         </AnimatePresence>
       </Grid>
       {hasMore ? <Sentinel onVisible={loadMore} busy={loadingMore} /> : null}
+      <ItemDetail ids={items.map((i) => i.id)} />
     </>
   );
 }

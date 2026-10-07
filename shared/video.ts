@@ -66,3 +66,24 @@ export function motionSource(item: {
   }
   return null;
 }
+
+/** What plays in a reference's detail view: our stored clip, or the platform's own player with controls. */
+export function playerSource(item: {
+  sourceUrl: string;
+  platform: string;
+  preview?: { video?: string | null } | null;
+}): MotionSource | null {
+  if (item.platform === "youtube") {
+    const id = youtubeId(item.sourceUrl);
+    if (id) {
+      const q = new URLSearchParams({ autoplay: "1", mute: "1", playsinline: "1", rel: "0", iv_load_policy: "3" });
+      return { kind: "embed", provider: "youtube", src: `https://www.youtube-nocookie.com/embed/${id}?${q}` };
+    }
+  }
+  if (item.platform === "vimeo") {
+    const id = vimeoId(item.sourceUrl);
+    if (id) return { kind: "embed", provider: "vimeo", src: `https://player.vimeo.com/video/${id}?autoplay=1&muted=1&dnt=1` };
+  }
+  if (item.preview?.video) return { kind: "file", src: item.preview.video };
+  return null;
+}

@@ -6,7 +6,7 @@ import { useEffect, useState, useSyncExternalStore, type FormEvent } from "react
 import { toast } from "sonner";
 import { createKey, listKeys, revokeKey, type ApiKeyInfo } from "@/lib/data/keys";
 import { friendlyError } from "@/lib/errors";
-import { cn } from "@/lib/ui";
+import { cn, relativeTime } from "@/lib/ui";
 import { Spark } from "../ui/brand";
 import { Button } from "../ui/button";
 import { Dialog, inputClass } from "../ui/dialog";
@@ -137,12 +137,12 @@ function NewKeyPanel({ apiKey, name, onDone }: { apiKey: string; name: string; o
       code: `claude mcp add --transport http ilham ${origin}/api/mcp \\\n  --header "Authorization: Bearer ${apiKey}"`,
     },
     prompt: {
-      hint: "الصقها للوكيل مع اسم المشروع. يقرأ الـ brief وذوقك قبل ما يدوّر.",
-      code: `You are Ilham's curator agent. Use the "ilham" MCP tools.\n1. get_project("<slug>") — read the brief and knownUrls.\n2. get_taste("<slug>") — learn what I keep vs. discard.\n3. start_run("<slug>", "<your search plan>").\n4. Find <N> pieces that match the brief's mood and keywords. Skip anything in "exclude" or knownUrls.\n5. Prefer the original creator's page — no reposts, no aggregators.\n6. For each: url, direct high-res imageUrl, title, 3–5 namespaced tags, one-sentence reason tied to the brief.\n7. add_inspiration in ONE batch, then finish_run with a 2-line summary.`,
+      hint: "الصقها للوكيل مع اسم المشروع. يقرأ الـ brief وذوقك قبل ما يدوّر، ويجيب معلومات صاحب كل عمل.",
+      code: `You are Ilham's curator agent. Use the "ilham" MCP tools.\n1. get_project("<slug>") — read the brief and knownUrls.\n2. get_taste("<slug>") — learn what I keep vs. discard.\n3. start_run("<slug>", "<your search plan>").\n4. Find <N> pieces that match the brief's mood and keywords. Skip anything in "exclude" or knownUrls.\n5. Prefer the original creator's page — no reposts, no aggregators.\n6. For each: url, direct high-res imageUrl, title, 3–5 namespaced tags, one-sentence reason tied to the brief.\n7. Credits for each: creator, creatorUrl (their portfolio), publishedAt, tools (software used) and process (how it was made, 1–3 sentences from the creator's page or a making-of). Leave out what you can't verify.\n8. add_inspiration in ONE batch, then finish_run with a 2-line summary.\n9. Anything else worth telling me about a piece → add_note, in Arabic.\n10. Items with lastNoteBy "user": read them with get_item and answer with add_note.`,
     },
     api: {
       hint: "لأي أداة تقدر تسوي طلبات HTTP (n8n، Make، سكربت).",
-      code: `curl -X POST ${origin}/api/v1/projects/<slug>/items \\\n  -H "Authorization: Bearer ${apiKey}" \\\n  -H "Content-Type: application/json" \\\n  -d '{"items":[{"url":"https://…","imageUrl":"https://…","tags":["type:ui"],"reason":"…"}]}'`,
+      code: `curl -X POST ${origin}/api/v1/projects/<slug>/items \\\n  -H "Authorization: Bearer ${apiKey}" \\\n  -H "Content-Type: application/json" \\\n  -d '{"items":[{"url":"https://…","imageUrl":"https://…","tags":["type:ui"],"reason":"…","creator":"…","creatorUrl":"https://…","tools":["Blender"]}]}'`,
     },
   };
 
@@ -212,15 +212,6 @@ function CodeBlock({ code, className }: { code: string; className?: string }) {
   );
 }
 
-const rtf = new Intl.RelativeTimeFormat("ar", { numeric: "auto" });
-function relative(isoDate: string): string {
-  const minutes = Math.round((new Date(isoDate).getTime() - Date.now()) / 60_000);
-  if (Math.abs(minutes) < 60) return rtf.format(minutes, "minute");
-  const hours = Math.round(minutes / 60);
-  if (Math.abs(hours) < 24) return rtf.format(hours, "hour");
-  return rtf.format(Math.round(hours / 24), "day");
-}
-
 function KeyList({ keys, onRevoke }: { keys: ApiKeyInfo[] | undefined; onRevoke: (key: ApiKeyInfo) => void }) {
   if (keys === undefined) {
     return <div className="shimmer-surface h-16 rounded-2xl bg-raised" />;
@@ -241,7 +232,7 @@ function KeyList({ keys, onRevoke }: { keys: ApiKeyInfo[] | undefined; onRevoke:
               <span dir="ltr" className="font-mono">
                 {k.preview}…
               </span>
-              <span>{k.lastUsedAt ? ` · آخر استخدام ${relative(k.lastUsedAt)}` : " · ما استُخدم بعد"}</span>
+              <span>{k.lastUsedAt ? ` · آخر استخدام ${relativeTime(k.lastUsedAt)}` : " · ما استُخدم بعد"}</span>
             </p>
           </div>
           <button

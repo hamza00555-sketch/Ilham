@@ -1,6 +1,8 @@
 "use client";
 
 import {
+  arrayRemove,
+  arrayUnion,
   collection,
   deleteDoc,
   doc,
@@ -19,8 +21,8 @@ import {
 } from "firebase/firestore";
 import { useEffect, useState } from "react";
 import { canonicalizeUrl, hashUrl } from "@/shared/normalize";
-import { buildItem } from "@/shared/items";
-import { itemId, type AddedBy, type IngestHints, type Item, type ItemStatus } from "@/shared/types";
+import { buildItem, makeNote, MAX_NOTES } from "@/shared/items";
+import { itemId, type AddedBy, type IngestHints, type Item, type ItemNote, type ItemStatus } from "@/shared/types";
 import { callApi } from "../api";
 import { firebase } from "../firebase/client";
 
@@ -70,6 +72,33 @@ export function useItems(uid: string, projectId: string, status: ItemStatus = "k
     loadingMore: state !== undefined && state.key !== key,
     loadMore: () => setPageCount((n) => n + 1),
   };
+}
+
+/** One item, live: the detail sheet follows new notes and finished previews. `null` once it's gone. */
+export function useItem(uid: string, id: string): ItemDoc | null | undefined {
+  const [state, setState] = useState<{ id: string; item: ItemDoc | null }>();
+  useEffect(
+    () =>
+      onSnapshot(
+        doc(itemsCol(uid), id),
+        (snap) => setState({ id, item: snap.exists() ? { id: snap.id, ...(snap.data() as Item) } : null }),
+        () => setState({ id, item: null }),
+      ),
+    [uid, id],
+  );
+  return state?.id === id ? state.item : undefined;
+}
+
+/** Your note on a reference. Agents read notes with get_item and answer with add_note. */
+export async function addUserNote(uid: string, item: ItemDoc, text: string) {
+  const note = makeNote("user", text);
+  if (!note) return;
+  if ((item.notes?.length ?? 0) >= MAX_NOTES) throw Object.assign(new Error("too-many-notes"), { code: "too-many-notes" });
+  await updateDoc(doc(itemsCol(uid), item.id), { notes: arrayUnion(note), ...touch });
+}
+
+export async function removeNote(uid: string, id: string, note: ItemNote) {
+  await updateDoc(doc(itemsCol(uid), id), { notes: arrayRemove(note), ...touch });
 }
 
 export type AddResult = { status: "added" | "duplicate"; id: string };

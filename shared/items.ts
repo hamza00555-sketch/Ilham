@@ -1,7 +1,8 @@
 // Building a new item record, shared by the browser (you) and the agent API, so both normalize,
 // dedupe and default exactly the same way.
+import { cleanHttpUrl, cleanLine, cleanTools, normalizeDate } from "./credits";
 import { canonicalizeUrl, detectPlatform, extractUrl, hashUrl, titleFromUrl } from "./normalize";
-import { itemId, type AddedBy, type IngestHints, type Item } from "./types";
+import { itemId, type AddedBy, type IngestHints, type Item, type ItemNote } from "./types";
 
 export type NewItem = Omit<Item, "addedAt" | "updatedAt">;
 
@@ -12,6 +13,43 @@ export interface BuildItemOptions {
   /** Why an agent picked it, shown in the Inbox. */
   reason?: string | null;
   agentRunId?: string | null;
+  /** What the adder already knows about who made it. The page's own credits win where it has them. */
+  credits?: CreditsInput;
+  /** A first note for the user about this reference (agents). */
+  note?: string | null;
+  /** The agent's key name, shown on its notes. */
+  agentName?: string | null;
+}
+
+export interface CreditsInput {
+  creator?: string | null;
+  creatorUrl?: string | null;
+  publishedAt?: string | number | null;
+  tools?: string[] | null;
+  process?: string | null;
+}
+
+export const MAX_NOTES = 100;
+export const MAX_NOTE_LENGTH = 2000;
+
+export function makeNote(by: ItemNote["by"], text: string, name: string | null = null): ItemNote | null {
+  const clean = cleanLine(text, MAX_NOTE_LENGTH);
+  if (!clean) return null;
+  return { id: randomId(), by, name: by === "agent" ? cleanLine(name, 40) : null, text: clean, at: new Date().toISOString() };
+}
+
+const randomId = () => globalThis.crypto.randomUUID().replace(/-/g, "").slice(0, 16);
+
+/** Credits as item fields; only what's present, so an update never blanks what's already known. */
+export function creditFields(credits?: CreditsInput | null): Partial<Item> {
+  if (!credits) return {};
+  const out: Partial<Item> = {};
+  if (credits.creator !== undefined) out.authorName = cleanLine(credits.creator, 120);
+  if (credits.creatorUrl !== undefined) out.authorUrl = cleanHttpUrl(credits.creatorUrl);
+  if (credits.publishedAt !== undefined) out.publishedAt = normalizeDate(credits.publishedAt);
+  if (credits.tools !== undefined) out.tools = cleanTools(credits.tools);
+  if (credits.process !== undefined) out.process = cleanLine(credits.process, 1500);
+  return out;
 }
 
 /** The doc ID (`{projectId}__{urlHash}`) and the fields of a new, queued item. */
@@ -25,6 +63,8 @@ export async function buildItem(
   const urlHash = await hashUrl(canonicalUrl);
   const addedBy = opts.addedBy ?? "user";
   const hints = cleanHints(opts.hints);
+  const credits = creditFields(opts.credits);
+  const note = opts.note ? makeNote(addedBy === "agent" ? "agent" : "user", opts.note, opts.agentName ?? null) : null;
 
   const item: NewItem = {
     projectId,
@@ -34,8 +74,8 @@ export async function buildItem(
     platform: detectPlatform(canonicalUrl),
     mediaType: "image",
     title: hints?.title ?? titleFromUrl(canonicalUrl),
-    authorName: null,
-    authorUrl: null,
+    authorName: credits.authorName ?? null,
+    authorUrl: credits.authorUrl ?? null,
     preview: null,
     colorBuckets: [],
     searchTokens: [],
@@ -48,7 +88,11 @@ export async function buildItem(
     addedBy,
     agentRunId: opts.agentRunId ?? null,
     reason: opts.reason?.trim().slice(0, 400) || null,
-    note: null,
+    description: null,
+    publishedAt: credits.publishedAt ?? null,
+    tools: credits.tools ?? [],
+    process: credits.process ?? null,
+    notes: note ? [note] : [],
   };
   return { id: itemId(projectId, urlHash), item };
 }

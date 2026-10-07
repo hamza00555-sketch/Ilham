@@ -13,6 +13,19 @@ export const createProjectInput = z.object({
   brief: brief.optional().describe("What to look for: goal, mood, keywords, sources, exclude, quota."),
 });
 
+// Credits: who made a piece, when, with what, and how. Agents research these; the page's own
+// credits win where the server can read them.
+const credits = {
+  creator: z.string().max(120).describe("Who made it: the artist's or studio's name."),
+  creatorUrl: z.string().max(2000).describe("Their portfolio or profile page (Behance, ArtStation, Instagram, personal site)."),
+  publishedAt: z.string().max(40).describe("When it was published: YYYY-MM-DD, YYYY-MM or YYYY."),
+  tools: z.array(z.string().max(40)).max(12).describe("Software used, as the creator names it: Blender, Cinema 4D, After Effects, Unreal Engine, Figma…"),
+  process: z
+    .string()
+    .max(1500)
+    .describe("How it was made, in 1-3 sentences: technique, pipeline, making-of. Only what the creator or a reliable source says."),
+};
+
 export const agentItem = z.object({
   url: z.string().max(2000).describe("The original work's page (the creator's own page, not an aggregator)."),
   imageUrl: z.string().max(2000).optional().describe("Direct high-res image URL, if you have it (helps on sites that block servers, like Dribbble)."),
@@ -20,6 +33,12 @@ export const agentItem = z.object({
   title: z.string().max(200).optional(),
   tags: z.array(z.string().max(40)).max(12).optional().describe("Namespaced tags like type:ui, style:glass, mood:dark."),
   reason: z.string().max(400).optional().describe("One sentence: why this fits the brief. Shown to the user in the Inbox."),
+  creator: credits.creator.optional(),
+  creatorUrl: credits.creatorUrl.optional(),
+  publishedAt: credits.publishedAt.optional(),
+  tools: credits.tools.optional(),
+  process: credits.process.optional(),
+  note: z.string().max(2000).optional().describe("Anything else worth telling the user about this piece. Shown as your note on it."),
 });
 
 export const addItemsInput = z.object({
@@ -30,7 +49,15 @@ export const addItemsInput = z.object({
 export const updateItemInput = z.object({
   status: z.enum(["inbox", "kept", "discarded"]).optional(),
   tags: z.array(z.string().max(40)).max(12).optional(),
-  note: z.string().max(1000).nullable().optional(),
+  creator: credits.creator.nullable().optional(),
+  creatorUrl: credits.creatorUrl.nullable().optional(),
+  publishedAt: credits.publishedAt.nullable().optional(),
+  tools: credits.tools.optional(),
+  process: credits.process.nullable().optional(),
+});
+
+export const addNoteInput = z.object({
+  text: z.string().min(1).max(2000).describe("Your note to the user about this reference. Plain text, their language."),
 });
 
 export const startRunInput = z.object({
@@ -57,3 +84,12 @@ export async function readBody<T extends z.ZodType>(request: Request, schema: T)
 }
 
 export const originOf = (request: Request) => new URL(request.url).origin;
+
+const ITEM_ID = /^[\w-]{1,64}__[a-f0-9]{64}$/;
+
+/** The slug and item id of /api/v1/projects/[slug]/items/[id] routes, with the id checked. */
+export async function itemParams(ctx: { params: Promise<{ slug: string; id: string }> }) {
+  const { slug, id } = await ctx.params;
+  if (!ITEM_ID.test(id)) throw new HttpError(400, "invalid-item");
+  return { slug, id };
+}

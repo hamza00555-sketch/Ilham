@@ -25,10 +25,10 @@ export async function GET(request: Request, ctx: { params: Promise<{ slug: strin
 /** Adds up to 50 picks to the project's Inbox. 202: previews are still being made. */
 export async function POST(request: Request, ctx: { params: Promise<{ slug: string }> }) {
   try {
-    const { uid } = await requireAgent(request);
+    const { uid, name } = await requireAgent(request);
     const { slug } = await ctx.params;
     const { items, agentRunId } = await readBody(request, addItemsInput);
-    return Response.json(await addItems(uid, slug, items, agentRunId), { status: 202 });
+    return Response.json(await addItems(uid, slug, items, agentRunId, name), { status: 202 });
   } catch (err) {
     return errorResponse(err);
   }

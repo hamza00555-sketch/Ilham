@@ -304,8 +304,8 @@
       "name": "Reference Card",
       "kind": "card",
       "refersTo": "reference-card",
-      "description": "4:3 work on its dominant color; caption with platform dot; hover pill names the destination.",
-      "html": "<article class=\"ds-ref\" dir=\"rtl\"><a class=\"ds-ref-media\" href=\"#\" style=\"background:linear-gradient(135deg,#1d3b53,#5a2a17)\"><span class=\"ds-ref-pill\">افتح في Dribbble ↗</span></a><div class=\"ds-ref-cap\"><span class=\"ds-dot\" style=\"background:#ea4c89\"></span><p dir=\"auto\">Spatial Onboarding</p><span class=\"ds-by\" dir=\"auto\">Jane Doe</span></div></article>",
+      "description": "4:3 work on its dominant color; caption with platform dot; click opens the Reference Sheet; badges for agent picks, motion and notes.",
+      "html": "<article class=\"ds-ref\" dir=\"rtl\"><a class=\"ds-ref-media\" href=\"#\" style=\"background:linear-gradient(135deg,#1d3b53,#5a2a17)\"></a><div class=\"ds-ref-cap\"><span class=\"ds-dot\" style=\"background:#ea4c89\"></span><p dir=\"auto\">Spatial Onboarding</p><span class=\"ds-by\" dir=\"auto\">Jane Doe</span></div></article>",
       "css": ".ds-ref{width:280px;font-family:Geist,'IBM Plex Sans Arabic',system-ui,sans-serif}.ds-ref-media{position:relative;display:block;aspect-ratio:4/3;border-radius:10px;overflow:hidden;background:#1a1a1d;transition:transform .3s cubic-bezier(.22,1,.36,1)}.ds-ref-pill{position:absolute;inset-inline-end:12px;bottom:12px;padding:6px 12px;border-radius:9999px;background:rgb(0 0 0 / .45);backdrop-filter:blur(8px);color:#fff;font-size:12px;font-weight:500;opacity:0;transition:opacity .2s ease}.ds-ref:hover .ds-ref-pill{opacity:1}.ds-ref-cap{display:flex;align-items:center;gap:8px;margin-top:10px;padding:0 2px}.ds-ref-cap p{margin:0;font-size:13px;font-weight:500;color:var(--color-ink,#f4f4f5);text-align:right;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}.ds-by{margin-inline-start:auto;font-size:12px;color:var(--color-ink-faint,#85858e)}.ds-dot{width:6px;height:6px;border-radius:9999px;flex:none}.ds-ref-media:focus-visible{outline:2px solid var(--color-ink,#f4f4f5);outline-offset:2px}"
     },
     {
@@ -370,7 +370,7 @@
       "Do keep English titles in their own direction (dir=\"auto\") and align them with the RTL UI.",
       "Do use the strong ease-out curve (cubic-bezier(0.22, 1, 0.36, 1)), keep UI motion under 300ms, and stagger lists by 30ms.",
       "Do honor reduced motion fully: no loops, no autoplaying previews, no movement.",
-      "Do name a reference's destination honestly in the hover pill (a platform name, or the host for any other site)."
+      "Do name a reference's destination honestly on its open button (a platform name, or the host for any other site)."
     ],
     "donts": [
       "Don't use Signal Lime or the lime ✦ for anything an agent didn't do.",

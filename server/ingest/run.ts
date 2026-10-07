@@ -1,5 +1,6 @@
 import "server-only";
 import { FieldValue, type Timestamp } from "firebase-admin/firestore";
+import { mergeTools } from "@/shared/credits";
 import { searchTokens } from "@/shared/normalize";
 import type { IngestState, Item, Preview } from "@/shared/types";
 import { putPublic } from "../blob";
@@ -67,8 +68,12 @@ async function reuseExisting(uid: string, item: Item, selfId: string): Promise<I
   if (!source?.preview) return null;
   return {
     title: source.title,
-    authorName: source.authorName,
-    authorUrl: source.authorUrl,
+    authorName: source.authorName ?? item.authorName,
+    authorUrl: source.authorUrl ?? item.authorUrl,
+    description: source.description ?? item.description ?? null,
+    publishedAt: source.publishedAt ?? item.publishedAt ?? null,
+    tools: mergeTools(source.tools, item.tools),
+    process: item.process ?? source.process ?? null,
     mediaType: source.mediaType,
     preview: source.preview,
     colorBuckets: source.colorBuckets,
@@ -84,12 +89,18 @@ async function ingestFresh(uid: string, item: Item, upload: Buffer | null): Prom
     useMicrolink: process.env.MICROLINK_DISABLED !== "true",
   });
 
+  // The page's own credits win; what an agent already told us fills the gaps.
+  const authorName = resolved.authorName ?? item.authorName;
+  const tools = mergeTools(resolved.tools, item.tools);
   const base: IngestUpdate = {
     title: resolved.title,
-    authorName: resolved.authorName,
-    authorUrl: resolved.authorUrl,
+    authorName,
+    authorUrl: resolved.authorUrl ?? item.authorUrl,
+    description: resolved.description ?? item.description ?? null,
+    publishedAt: resolved.publishedAt ?? item.publishedAt ?? null,
+    tools,
     mediaType: resolved.mediaType,
-    searchTokens: searchTokens(resolved.title, resolved.authorName, ...(item.tags ?? [])),
+    searchTokens: searchTokens(resolved.title, authorName, ...tools, ...(item.tags ?? [])),
     ingest: "failed",
     ingestError: resolved.error,
   };

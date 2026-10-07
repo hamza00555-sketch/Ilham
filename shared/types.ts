@@ -43,6 +43,17 @@ export interface IngestHints {
   title?: string;
 }
 
+/** One message on a reference: an agent telling you something about it, or your own note (agents read both). */
+export interface ItemNote {
+  id: string;
+  by: "user" | "agent";
+  /** The agent's key name ("Codex", "Claude"…), for agent notes. */
+  name: string | null;
+  text: string;
+  /** ISO time. Notes live in an array, where server timestamps aren't allowed. */
+  at: string;
+}
+
 export interface Item {
   projectId: string;
   urlHash: string;
@@ -51,6 +62,7 @@ export interface Item {
   platform: Platform;
   mediaType: MediaType;
   title: string | null;
+  /** Who made it, and their portfolio or profile page. */
   authorName: string | null;
   authorUrl: string | null;
   preview: Preview | null;
@@ -64,7 +76,16 @@ export interface Item {
   addedBy: AddedBy;
   agentRunId: string | null;
   reason: string | null;
-  note: string | null;
+  // Credits. Optional: references saved before credits existed don't have them.
+  /** The creator's own words about the work, from its page. */
+  description?: string | null;
+  /** "YYYY-MM-DD", "YYYY-MM" or "YYYY". */
+  publishedAt?: string | null;
+  /** Software used ("Blender", "After Effects"…), found on the page or added by an agent. */
+  tools?: string[];
+  /** How it was made: process, techniques, making-of. Usually an agent's research. */
+  process?: string | null;
+  notes?: ItemNote[];
   // Timestamps are Firestore Timestamps at runtime; typed loosely so both SDKs fit.
   addedAt: unknown;
   updatedAt: unknown;

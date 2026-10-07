@@ -8,6 +8,8 @@ export interface ExtractedMeta {
   authorUrl?: string;
   imageUrl?: string;
   mediaType?: MediaType;
+  description?: string;
+  publishedAt?: string;
 }
 
 /** Platforms with a reliable oEmbed API skip page scraping entirely. */
@@ -24,16 +26,48 @@ async function youtube(url: string): Promise<ExtractedMeta | null> {
     `https://www.youtube.com/oembed?format=json&url=${encodeURIComponent(`https://www.youtube.com/watch?v=${id}`)}`,
   );
   const maxres = `https://i.ytimg.com/vi/${id}/maxresdefault.jpg`;
-  const hasMaxres = await safeFetch(maxres, { maxBytes: 4 * 1024 * 1024 })
-    .then((r) => r.status === 200)
-    .catch(() => false);
+  const [hasMaxres, about] = await Promise.all([
+    safeFetch(maxres, { maxBytes: 4 * 1024 * 1024 })
+      .then((r) => r.status === 200)
+      .catch(() => false),
+    youtubeAbout(id),
+  ]);
   return {
     title: str(oembed?.title),
     authorName: str(oembed?.author_name),
     authorUrl: str(oembed?.author_url),
     imageUrl: hasMaxres ? maxres : `https://i.ytimg.com/vi/${id}/hqdefault.jpg`,
     mediaType: "video",
+    ...about,
   };
+}
+
+/**
+ * The full description and publish date, which oEmbed leaves out, from the watch page.
+ * Best effort: YouTube sometimes answers servers with a consent or rate-limit page instead.
+ */
+async function youtubeAbout(id: string): Promise<Pick<ExtractedMeta, "description" | "publishedAt">> {
+  try {
+    const res = await safeFetch(`https://www.youtube.com/watch?v=${id}&hl=en`, { maxBytes: 4 * 1024 * 1024, timeoutMs: 8_000 });
+    if (res.status !== 200) return {};
+    return parseYoutubeWatch(res.body.toString("utf8"));
+  } catch {
+    return {};
+  }
+}
+
+export function parseYoutubeWatch(html: string): Pick<ExtractedMeta, "description" | "publishedAt"> {
+  const raw = html.match(/"shortDescription":"((?:[^"\\]|\\.)*)"/)?.[1];
+  let description: string | undefined;
+  try {
+    description = raw ? (JSON.parse(`"${raw}"`) as string).trim() || undefined : undefined;
+  } catch {
+    description = undefined;
+  }
+  const publishedAt =
+    html.match(/<meta itemprop="(?:datePublished|uploadDate)" content="([^"]+)"/)?.[1] ??
+    html.match(/"(?:publishDate|uploadDate)":"([^"]+)"/)?.[1];
+  return { description, publishedAt };
 }
 
 async function vimeo(url: string): Promise<ExtractedMeta | null> {
@@ -45,6 +79,8 @@ async function vimeo(url: string): Promise<ExtractedMeta | null> {
     authorUrl: str(oembed.author_url),
     imageUrl: str(oembed.thumbnail_url),
     mediaType: "video",
+    description: str(oembed.description),
+    publishedAt: str(oembed.upload_date),
   };
 }
 
