@@ -8,19 +8,25 @@
     "build": "next build",
     "start": "next start",
     "lint": "eslint",
-    "typecheck": "tsc --noEmit && npm --prefix functions run typecheck",
+    "typecheck": "tsc --noEmit",
     "test": "vitest run",
-    "emulators": "npm --prefix functions run build && npx -y firebase-tools@15 emulators:start",
-    "deploy:firebase": "npx -y firebase-tools@15 deploy --only firestore,storage,functions"
+    "emulators": "npx -y firebase-tools@15 emulators:start --only auth,firestore",
+    "deploy:firebase": "npx -y firebase-tools@15 deploy --only firestore"
   },
   "dependencies": {
+    "@vercel/blob": "^2.8.1",
+    "cheerio": "^1.2.0",
     "firebase": "^12.19.0",
+    "firebase-admin": "^14.5.0",
+    "ipaddr.js": "^2.5.0",
     "lucide-react": "^1.52.0",
     "motion": "^14.0.0",
     "next": "16.4.0",
     "radix-ui": "^1.7.0",
     "react": "19.3.0",
     "react-dom": "19.3.0",
+    "server-only": "^0.0.1",
+    "sharp": "^0.35.5",
     "sonner": "^2.0.8"
   },
   "devDependencies": {

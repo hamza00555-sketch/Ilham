@@ -7,5 +7,7 @@ export function friendlyError(err: unknown): string {
   if (code.includes("invalid-email")) return "الإيميل مكتوب غلط.";
   if (code.includes("unauthorized-domain")) return "هذا الدومين مو مضاف في إعدادات Firebase Auth.";
   if (code.includes("quota-exceeded")) return "انتهت حصة الاستخدام لليوم.";
+  if (code === "not-allowed") return "هذا الحساب مو ضمن المسموح لهم في إلهام.";
+  if (code === "invalid-upload") return "الملف لازم يكون صورة.";
   return "صار خطأ غير متوقع. جرّب مرة ثانية.";
 }

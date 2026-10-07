@@ -1,4 +1,4 @@
-// Video sources for hover/in-view motion previews. Shared by the app and Cloud Functions.
+// Video sources for hover/in-view motion previews. Shared by the browser and the ingest server.
 
 export function youtubeId(url: string): string | null {
   try {

@@ -1,4 +1,4 @@
-// Types shared by the Next.js app and Cloud Functions.
+// Types shared by the browser and the ingest server (app/api).
 // Firestore layout: users/{uid}/projects/{projectId} · users/{uid}/items/{projectId}__{urlHash}
 
 export type Platform =
@@ -31,15 +31,13 @@ export interface Preview {
   lqip: string;
   dominantColor: string;
   palette: string[];
-  /** Short muted mp4/webm stored in our bucket (when the source offers a video file). */
+  /** Short muted mp4/webm we store ourselves (when the source offers a video file). */
   video?: string | null;
 }
 
 /** Optional hints from the user or an agent. The server always re-fetches metadata itself. */
 export interface IngestHints {
   imageUrl?: string;
-  /** Storage path of an image the user uploaded as the preview. */
-  imagePath?: string;
   /** Direct video file (e.g. the <video> on a Dribbble shot, read by the bookmarklet). */
   videoUrl?: string;
   title?: string;

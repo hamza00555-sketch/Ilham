@@ -1,5 +1,5 @@
-import type { IngestHints, MediaType, Platform } from "../../../shared/types";
-import { titleFromUrl } from "../../../shared/normalize";
+import type { IngestHints, MediaType, Platform } from "@/shared/types";
+import { titleFromUrl } from "@/shared/normalize";
 import { cleanTitle, extractViaApi } from "./extractors";
 import { parseHtml } from "./metadata";
 import { microlink } from "./microlink";
@@ -7,8 +7,11 @@ import { looksBlocked, safeFetch } from "./safeFetch";
 
 export type IngestErrorCode = "blocked" | "no-image" | "fetch-failed" | "invalid-image";
 
-/** Videos above this are left as stills; loops should stay light enough to start on hover. */
-export const MAX_VIDEO_BYTES = 12 * 1024 * 1024;
+/**
+ * Videos above this are left as stills: loops should start fast on hover, and the free Blob
+ * tier (1 GB) shouldn't be eaten by a handful of clips.
+ */
+export const MAX_VIDEO_BYTES = 8 * 1024 * 1024;
 
 export interface ResolvedVideo {
   data: Buffer;
@@ -28,7 +31,8 @@ export interface Resolved {
 }
 
 interface Deps {
-  readUpload?: (path: string) => Promise<Buffer>;
+  /** An image the user uploaded as the preview. It wins over anything found online. */
+  upload?: Buffer | null;
   useMicrolink?: boolean;
 }
 
@@ -91,7 +95,7 @@ export async function resolveLink(
   if (!title && hints?.title) title = hints.title;
 
   // Pages we couldn't read, or that have no og:image: ask a real browser.
-  if (useMicrolink && !directImage && imageCandidates.length === 0 && !hints?.imagePath) {
+  if (useMicrolink && !directImage && imageCandidates.length === 0 && !deps.upload) {
     const ml = await microlink(url, { screenshot: !blocked });
     if (ml) {
       const cleaned = cleanTitle(ml.title, platform);
@@ -105,12 +109,9 @@ export async function resolveLink(
     }
   }
 
-  let image: Buffer | null = null;
+  let image: Buffer | null = deps.upload ?? null;
   let error: IngestErrorCode | null = null;
 
-  if (hints?.imagePath && deps.readUpload) {
-    image = await deps.readUpload(hints.imagePath).catch(() => null);
-  }
   if (!image && directImage) image = directImage;
   for (const candidate of imageCandidates) {
     if (image) break;

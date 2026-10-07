@@ -21,10 +21,10 @@
 | القرار | الاختيار | ليش |
 |---|---|---|
 | Frontend | **Next.js** (App Router) + TypeScript + Tailwind v4 + shadcn/ui + Motion | سريع للبناء، SSR للبريفيوهات، وبيئة قوية |
-| Backend | **Firebase**: Firestore + Auth + Cloud Storage + Cloud Functions | Console واحد، و realtime جاهز، و triggers بدل الـ queues |
-| Hosting | **Vercel** للواجهة والـ API والـ MCP، و **Firebase** للبيانات والمعالجة | Vercel هو الأفضل لـ Next.js ومجاني، و Firebase يشيل الشغل الثقيل |
+| Backend | **Firebase على خطة Spark المجانية**: Firestore + Auth بس | realtime جاهز، وبدون بطاقة ولا فاتورة |
+| Hosting | **Vercel Hobby** للواجهة والـ API والـ MCP **والمعالجة** (route handlers) + **Vercel Blob** للبريفيوهات | Functions و Storage في Firebase تحتاج Blaze، و Vercel يعطيها مجاناً |
 | واجهة الإيجنت | **REST API v1 + Remote MCP server** (`/api/mcp`) | أي إيجنت أو أداة أتمتة (Claude، n8n، Make) تقدر تضيف |
-| البريفيوهات | **نخزنها عندنا** في Cloud Storage (WebP) | الروابط تموت والمواقع تمنع الـ hotlink، والبريفيو لازم يكون ثابت |
+| البريفيوهات | **نخزنها عندنا** في Vercel Blob (WebP) | الروابط تموت والمواقع تمنع الـ hotlink، والبريفيو لازم يكون ثابت |
 | شكل الشبكة | **4:3 uniform** (نفس نسبة Dribbble) افتراضياً + خيار Masonry | شكل نظيف ومتناسق مثل الاستوديوهات |
 | المستخدمين | **Single-user أول**، بس كل البيانات تحت `users/{uid}` | جاهز لأكثر من مستخدم بدون إعادة بناء |
 | الاتجاه | **RTL-ready** من أول يوم (Tailwind logical properties) | عربي/إنجليزي بدون إعادة تصميم |
@@ -32,29 +32,33 @@
 ### التقسيم بين المنصتين
 
 ```
-Vercel   → الواجهة (Next.js) · REST API v1 · MCP server       ← "البوابة"
-Firebase → Firestore · Auth · Storage · Functions (ingestion, schedules) ← "العضلات"
+Vercel   → الواجهة · /api/ingest (رابط ← بريفيو) · /api/sync · REST API v1 · MCP · Blob  ← "البوابة والعضلات"
+Firebase → Firestore (البيانات، realtime) · Auth                                          ← "الذاكرة"
 ```
 
-> إذا تبي كل شي في console واحد، Firebase App Hosting يشغّل Next.js بعد. بس Vercel أنعم في التطوير، وعنده preview لكل branch، ومجاني.
+> **تحديث (أكتوبر 2026): بدون Blaze.** المعالجة انتقلت من Cloud Functions إلى route handlers في Next.js على Vercel،
+> والبريفيوهات من Cloud Storage إلى Vercel Blob. الـ server يكلم Firestore بـ Admin SDK (service account)، وهذا يشتغل على Spark.
+> الخطوات كاملة: [`DEPLOY.md`](DEPLOY.md).
 
-### Firebase — أشياء لازم تعرفها قبل تبدأ
+### أشياء لازم تعرفها قبل تبدأ
 
 | الموضوع | الواقع | وش نسوي |
 |---|---|---|
-| **خطة Blaze** | Cloud Functions تحتاج Blaze، و Cloud Storage صار يحتاجها بعد من 3 فبراير 2026 | نفعّل Blaze من البداية. فيها كوتا مجانية، فبهذا الحجم غالباً ما بتدفع شي |
-| **حط تنبيه ميزانية** | Blaze تحاسبك على اللي تستهلكه، ما فيها سقف | Budget alert على $5 و $10 من Google Cloud Billing |
-| **المنطقة** | كوتا Storage المجانية بس في `us-central1` و `us-west1` و `us-east1`، ومكان Firestore **ما يتغير بعدين** | كل شي على **`us-central1`** |
-| **الجدولة** | كل `onSchedule` يصير job في Cloud Scheduler، وأول 3 jobs لكل billing account مجانية | job وحد يومي يكفي لكل المشاريع |
+| **ليش مو Blaze** | Cloud Functions تحتاج Blaze، و Cloud Storage صار يحتاجها بعد من 3 فبراير 2026 | ما نستخدمهم. كل شي يحتاج سيرفر يشتغل على Vercel |
+| **السقف بدل الفاتورة** | Spark و Vercel Hobby و Blob Hobby كلها مجانية بسقف: لو خلصت الكوتا تتوقف الخدمة، ما تنسحب فلوس | نراقب الاستهلاك من لوحات Firebase و Vercel |
+| **Email link** | على Spark بس **5 إيميلات دخول باليوم** | Google هو طريق الدخول الأساسي |
+| **المنطقة** | مكان Firestore **ما يتغير بعدين**، والمتصفح يكلمه أكثر من السيرفر بكثير | `me-central2` (الدمام) أقرب شي لمستخدم في الخليج. المعالجة على Vercel تتحمل المسافة لأنها تشتغل بالخلفية |
+| **الجدولة** | Vercel Cron على Hobby يشتغل مرة وحدة باليوم | job يومي واحد يكفي لكل المشاريع |
+| **Vercel Hobby** | للاستخدام الشخصي غير التجاري | لو صار شغل استوديو تجاري: Vercel Pro |
 
 **الكوتا المجانية اللي تهمنا:**
 
 | المنتج | المجاني | استهلاك Ilham المتوقع |
 |---|---|---|
-| Firestore | 1 GiB تخزين · 50K قراءة/يوم · 20K كتابة/يوم | ~20K قراءة/يوم و ~1K كتابة/يوم |
-| Cloud Storage | 5 GB-months · 100 GB تحميل/شهر | ~1.5 GB لـ 10K مرجع · ~25 GB تحميل/شهر |
-| Cloud Functions | 2M invocation/شهر | ~10K/شهر |
-| Auth | 50K MAU | مستخدم واحد |
+| Firestore (Spark) | 1 GiB تخزين · 50K قراءة/يوم · 20K كتابة/يوم | ~20K قراءة/يوم و ~1K كتابة/يوم |
+| Vercel Blob (Hobby) | 1 GB تخزين · 10 GB نقل · 2K رفع/شهر | كل مرجع ~150KB ورفعتين ← ~6K مرجع، و ~1000 مرجع جديد/شهر |
+| Vercel Functions (Hobby) | ضمن حصة الحساب | طلب واحد لكل مرجع (~2-8 ثواني) |
+| Auth | 50K MAU | مستخدم واحد أو فريق صغير |
 
 ---
 
@@ -189,56 +193,41 @@ service cloud.firestore {
 }
 ```
 
-```js
-// storage.rules
-rules_version = '2';
-service firebase.storage {
-  match /b/{bucket}/o {
-    // الـ previews تكتبها Functions بس، وتنعرض بروابط download token
-    match /users/{uid}/previews/{all=**} { allow read, write: if false; }
-    // رفع الصور بالسحب (drag & drop)
-    match /users/{uid}/uploads/{file} {
-      allow write: if request.auth.uid == uid
-                   && request.resource.size < 15 * 1024 * 1024
-                   && request.resource.contentType.matches('image/.*|video/.*');
-    }
-  }
-}
-```
+> ما فيه `storage.rules`: البريفيوهات في Vercel Blob بروابط عامة عشوائية (مثل download tokens)، والرفع يمر من `/api/ingest` بعد التحقق من الـ ID token.
 
-**Auth:** Google Sign-In (ضغطة وحدة) + Email link احتياط. بعد ما تسجل، تقفل التسجيل الجديد من Authentication → Settings عشان ما أحد ثاني يفتح حساب.
+**Auth:** Google Sign-In (ضغطة وحدة) + Email link احتياط (5 إيميلات باليوم على Spark). `ILHAM_ALLOWED_EMAILS` على Vercel يحدد مين يقدر يستخدم المعالجة.
 
 ---
 
 ## 5. Ingestion Pipeline — كيف الرابط يصير بريفيو
 
-الفكرة: **كتابة doc = تشغيل الـ pipeline.** ما نحتاج queue ولا Inngest. Firestore trigger يشغّل Cloud Function، وفيها retries جاهزة.
+الفكرة: **الواجهة تكتب الـ doc، وبعدها تنادي `/api/ingest`.** ما نحتاج queue ولا Inngest. الـ claim داخل transaction، فطلبين لنفس المرجع ما يشتغلون مع بعض. وأي مرجع يعلق في `queued` أو `processing` (الصفحة انقفلت، الطلب مات) يرجع يشتغل لحاله أول ما تفتح المشروع (`useResumeIngest`).
 
 ```mermaid
 flowchart LR
   A[URL from user / agent] --> B[Normalize + hash]
   B --> C{"create items/{pid}__{hash}"}
   C -- exists --> Z[Return duplicate]
-  C -- created, ingest=queued --> T[["Cloud Function<br/>onDocumentCreated"]]
+  C -- created, ingest=queued --> T[["POST /api/ingest<br/>Vercel route handler"]]
   T --> D[Fetch metadata<br/>oEmbed → OpenGraph → extractor]
   D --> E{Image found?}
   E -- yes --> F[Download image]
   E -- no --> G[Screenshot fallback]
   F --> H[sharp: WebP 640 + 1280<br/>lqip · palette · size]
   G --> H
-  H --> I[Cloud Storage]
+  H --> I[Vercel Blob]
   I --> U["update doc: ingest=ready + preview{}"]
   U --> L[UI updates live via onSnapshot]
 ```
 
 1. **Normalize** (في `shared/normalize.ts`، مشترك بين الواجهة والـ API): نشيل `utm_*` و `fbclid` و `ref`، والـ host يصير lowercase، ونشيل الـ trailing slash. بعدها نحسب `urlHash` (SHA-256).
 2. **Create:** الواجهة تكتب الـ doc مباشرة (الـ rules تسمح لك)، والـ API يكتبه بـ Admin SDK. الحالة تبدأ `ingest: 'queued'`، و `status` يكون `inbox` إذا من الإيجنت أو `kept` إذا منك.
-3. **Trigger:** `onDocumentWritten('users/{uid}/items/{itemId}')` بـ `memory: 1GiB` و `timeoutSeconds: 120`. يشتغل كل ما `ingest` يصير `queued`: وقت الإنشاء، ولما تضغط Retry، ولما تغيّر البريفيو.
+3. **Kick:** `POST /api/ingest { itemId }` مع ID token (`maxDuration: 60`). ينادى وقت الإنشاء، ولما تضغط Retry، ولما تغيّر البريفيو. رفع صورة يروح لنفس الـ route كـ multipart (الصور الكبيرة تتصغر في المتصفح تحت حد الـ 4.5MB حق Vercel).
 4. **Metadata:** oEmbed أول (YouTube، Vimeo)، بعدها OpenGraph/Twitter Cards، وبعدها extractor خاص بالمنصة.
-5. **Preview:** إذا الإيجنت أرسل `imageUrl` نستخدمه، وإلا `og:image`، وإذا ما لقينا شي نسوي screenshot (خدمة مثل Microlink / ScreenshotOne، أو Puppeteer داخل Function بـ 2GiB).
-6. **Processing:** `sharp` يشتغل عادي في Cloud Functions، ويطلع مقاسين WebP (640 و 1280) + LQIP + palette + `colorBuckets` + الأبعاد. في التجربة الفعلية: 2 لـ 35KB لكل مقاس.
-7. **Store:** `users/{uid}/previews/{urlHash}/640.webp` مع `Cache-Control: public, max-age=31536000, immutable`، والرابط ناخذه من `getDownloadURL()` في Admin SDK.
-8. **Update:** `ingest: 'ready'` + `preview{}`. والواجهة تتحدث لحالها.
+5. **Preview:** إذا الإيجنت أرسل `imageUrl` نستخدمه، وإلا `og:image`، وإذا ما لقينا شي نسوي screenshot (Microlink).
+6. **Processing:** `sharp` يشتغل عادي في Vercel Functions، ويطلع مقاسين WebP (640 و 1280) + LQIP + palette + `colorBuckets` + الأبعاد. في التجربة الفعلية: 2 لـ 35KB لكل مقاس.
+7. **Store:** `users/{uid}/previews/{urlHash}/640-<random>.webp` في Vercel Blob، كاش سنة. كل معالجة تاخذ اسم جديد، فالروابط اللي تستخدمها مشاريع ثانية ما تتغير.
+8. **Update:** `ingest: 'ready'` + `preview{}`، وبعدها نحدّث عدادات المشروع وغلافه. والواجهة تتحدث لحالها.
 
 **Retries بأمان:** الـ function تحجز المرجع بـ transaction (`queued → processing`) عشان ما يتعالج مرتين، وإذا نفس الرابط جاهز في مشروع ثاني تنسخ نتيجته بدون أي طلب للشبكة. وإذا فشلت تحط `ingest: 'failed'` مع السبب (`blocked` · `no-image` · `invalid-image`)، والكرت يطلع فيه "أضف بريفيو" و Retry. ما نستخدم `retry: true` حق Firebase عشان ما يدخل في loop.
 
@@ -258,7 +247,7 @@ flowchart LR
 **Extractors** — كل منصة لها ملف صغير بنفس الـ interface:
 
 ```ts
-// functions/src/ingest/extractors/types.ts
+// server/ingest/extractors.ts
 export interface Extractor {
   platform: string
   match(url: URL): boolean
@@ -404,7 +393,7 @@ You are Ilham's curator agent.
   | `tech:` | `visionos` · `webgl` · `c4d` · `blender` · `unreal` · `spline` |
   | `mood:` | `cinematic` · `playful` · `luxury` · `dark` |
 
-- **Storage:** `users/{uid}/previews/{urlHash}/640.webp` · `…/1280.webp` · `…/loop.mp4` · `users/{uid}/uploads/{file}`
+- **Blob:** `users/{uid}/previews/{urlHash}/640-<random>.webp` · `…/1280-<random>.webp` · `…/loop-<random>.mp4`
 - **Firestore:** collections بصيغة camelCase (`agentRuns`, `apiKeys`)، والحقول camelCase بعد.
 - **API keys:** اسم واضح لكل أداة، مثل `claude-curator` و `n8n-daily` و `ios-shortcut`. كذا تقدر تلغي أي وحدة لحالها.
 
@@ -423,6 +412,8 @@ ilham/
 │   │   └── settings/                  # API keys · webhooks
 │   ├── share/[token]/page.tsx         # رابط العميل (read-only)
 │   └── api/
+│       ├── ingest/route.ts            # رابط ← بريفيو (Admin SDK + sharp + Blob)
+│       ├── sync/route.ts              # عدادات المشروع وغلافه
 │       ├── v1/                        # REST (Admin SDK)
 │       └── mcp/route.ts               # MCP server
 ├── components/
@@ -432,25 +423,18 @@ ilham/
 ├── lib/
 │   ├── firebase/                      # client.ts · admin.ts
 │   └── api/                           # auth.ts · schemas.ts (zod)
-├── shared/                            # normalize.ts · types.ts (للواجهة والـ functions)
-├── functions/                         # Cloud Functions (Node 22, bundled بـ tsup)
-│   └── src/
-│       ├── ingest/
-│       │   ├── onItemCreated.ts
-│       │   ├── metadata.ts
-│       │   ├── image.ts               # sharp · lqip · palette
-│       │   └── extractors/            # dribbble.ts · behance.ts · vimeo.ts …
-│       └── schedule/dailyCurate.ts
+├── shared/                            # normalize.ts · types.ts (للواجهة والسيرفر)
+├── server/                            # server-only: firebase-admin · auth · blob · stats
+│   └── ingest/                        # run.ts · pipeline.ts · metadata.ts · image.ts · extractors.ts
 ├── firestore.rules
 ├── firestore.indexes.json
-├── storage.rules
-├── firebase.json                      # + إعدادات الـ Emulators
+├── firebase.json                      # + إعدادات الـ Emulators (Auth + Firestore)
 └── docs/PLAN.md
 ```
 
 ### أدوات التطوير
 
-- **Firebase Emulator Suite:** Firestore و Auth و Storage و Functions كلها تشتغل محلياً، فتجرب الـ pipeline كامل بدون ما تلمس البيانات الحقيقية.
+- **Firebase Emulator Suite:** Firestore و Auth محلياً، والـ route handlers تشتغل داخل `next dev`، والبريفيوهات تنحفظ في `.blobs/`. تجرب الـ pipeline كامل بدون ما تلمس البيانات الحقيقية.
 - **Firebase MCP في Claude Code:** يخلّي Claude يدير المشروع والـ rules والبيانات مباشرة وقت البناء:
   ```bash
   claude plugin marketplace add firebase/firebase-tools
@@ -463,9 +447,9 @@ ilham/
 
 > التقديرات على افتراض إننا نبني مع Claude Code.
 
-### Phase 0 — Foundation · ✅ الكود جاهز (باقي إعداد Firebase من عندك)
-- Firebase project على **Blaze** + budget alert + كل شي على `us-central1`
-- تفعيل Firestore و Auth (Google + Email link) و Storage و Functions
+### Phase 0 — Foundation · ✅ الكود جاهز (باقي الإعداد من عندك: [`DEPLOY.md`](DEPLOY.md))
+- Firebase project على **Spark** (مجاني، بدون بطاقة)، و Firestore في `us-central1`
+- تفعيل Firestore و Auth (Google + Email link)، و Blob store على Vercel
 - Emulators + Firebase MCP
 - Next.js + TS + Tailwind + shadcn على Vercel، و env vars (Firebase config + service account)
 - Design tokens (dark/light + RTL)
@@ -475,7 +459,7 @@ ilham/
 ### Phase 1 — MVP Core · ✅ مبني ومجرّب على الـ Emulators
 - Projects CRUD + covers تلقائية
 - Add by URL: Paste، `Cmd+V`، FAB
-- Ingestion v1: `onItemCreated` → oEmbed/OG → preview → sharp → Storage
+- Ingestion v1: `/api/ingest` → oEmbed/OG → preview → sharp → Blob
 - Grid 4:3 + hover + click to source + infinite scroll (cursor) + تحديث live
 - Responsive كامل + bottom nav
 
@@ -531,16 +515,17 @@ ilham/
 | Instagram و Pinterest يطلبون تسجيل دخول | Share Sheet من الجوال، والإيجنت يرسل الصورة مباشرة |
 | نفس العمل في أكثر من منصة | canonical URL + pHash |
 | الإيجنت يغرقك بمراجع ضعيفة | Inbox + quota + `exclude` + Taste Loop |
-| فاتورة Blaze تفاجئك | Budget alerts + كل شي في `us-central1` + بريفيوهات WebP صغيرة + `Cache-Control` طويل |
+| الكوتا المجانية تخلص | بريفيوهات WebP صغيرة + loops بحد 8MB + `ILHAM_ALLOWED_EMAILS` + `Cache-Control` طويل. الخدمات المجانية تتوقف بدل ما تحاسبك |
+| ملفات Blob تبقى بعد حذف المرجع | تنظيف دوري (Vercel Cron) يحذف البريفيوهات اللي ما يشير لها أي مرجع |
 | Firestore يحاسب على كل قراءة | Pagination بـ cursor، والغلاف محفوظ في doc المشروع، والـ listeners بس على الصفحة المفتوحة |
 | ما فيه full-text search في Firestore | `searchTokens[]` للبحث البسيط الحين، و semantic search في Phase 4 |
-| Function تعيد المحاولة للأبد | Claim بـ transaction + بدون retry تلقائي + `ingest: 'failed'` وزر Retry يدوي |
+| المعالجة تعلق أو تتكرر | Claim بـ transaction + `processing` يعتبر ميت بعد 3 دقائق + `useResumeIngest` يكمل المعلق مرة وحدة + زر Retry يدوي |
 | مفاتيح API تتسرب | hashed + scopes + `lastUsedAt` + إلغاء بضغطة |
 
 ---
 
 ## 13. الخطوة الجاية
 
-1. تسوي Firebase project على Blaze (يحتاج بطاقتك، فهذي الخطوة لازم تكون منك)، وتحط budget alert.
-2. أنا أجهز Next.js و Vercel والـ rules والـ Functions والـ Emulators، ونبدأ **Phase 0 + Phase 1** على هذا الريبو.
+1. تمشي على [`DEPLOY.md`](DEPLOY.md): Firebase على Spark + Vercel + Blob (بدون بطاقة).
+2. ✅ Next.js و Vercel routes والـ rules والـ Emulators جاهزة، و **Phase 0 + Phase 1** مبنية على هذا الريبو.
 3. بعد ما يشتغل الـ MVP، نربط الإيجنت (Phase 2) ونجرب أول run حقيقي على مشروع من مشاريعك.

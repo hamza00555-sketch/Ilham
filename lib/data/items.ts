@@ -16,10 +16,10 @@ import {
   where,
   type DocumentData,
 } from "firebase/firestore";
-import { ref as storageRef, uploadBytes } from "firebase/storage";
 import { useEffect, useState } from "react";
 import { canonicalizeUrl, detectPlatform, extractUrl, hashUrl, titleFromUrl } from "@/shared/normalize";
 import { itemId, type AddedBy, type IngestHints, type Item, type ItemStatus } from "@/shared/types";
+import { callApi } from "../api";
 import { firebase } from "../firebase/client";
 
 export type ItemDoc = Item & { id: string };
@@ -112,6 +112,7 @@ export async function addItem(
     tx.set(ref, { ...item, addedAt: serverTimestamp(), updatedAt: serverTimestamp() });
     return "added" as const;
   });
+  if (status === "added") kickIngest(uid, id);
   return { status, id };
 }
 
@@ -121,45 +122,107 @@ function cleanHints(hints?: IngestHints): IngestHints | null {
   if (hints.imageUrl && /^https?:\/\//i.test(hints.imageUrl)) out.imageUrl = hints.imageUrl;
   if (hints.videoUrl && /^https?:\/\//i.test(hints.videoUrl)) out.videoUrl = hints.videoUrl;
   if (hints.title?.trim()) out.title = hints.title.trim().slice(0, 200);
-  if (hints.imagePath) out.imagePath = hints.imagePath;
   return Object.keys(out).length ? out : null;
 }
 
 const touch = { updatedAt: serverTimestamp() };
+const projectOf = (id: string) => id.split("__")[0];
 
-export function retryIngest(uid: string, id: string) {
-  return updateDoc(doc(itemsCol(uid), id), { ingest: "queued", ingestError: null, ...touch });
+/**
+ * Asks the server to ingest a queued item. Fire-and-forget: the card follows along live from
+ * Firestore. A refused request marks the item failed so it can be retried from its menu; a
+ * dropped connection leaves it queued for useResumeIngest to pick up.
+ */
+export function kickIngest(uid: string, id: string) {
+  void callApi("/api/ingest", { itemId: id }).catch(async (err) => {
+    const code = (err as { code?: string }).code ?? "internal";
+    if (code === "network-request-failed") return;
+    await updateDoc(doc(itemsCol(uid), id), { ingest: "failed", ingestError: code, ...touch }).catch(() => undefined);
+  });
 }
 
-export function setPreviewFromUrl(uid: string, id: string, imageUrl: string) {
-  return updateDoc(doc(itemsCol(uid), id), { hints: { imageUrl }, ingest: "queued", ingestError: null, ...touch });
+const resumed = new Set<string>();
+
+/**
+ * Restarts ingestion the browser asked for but never saw start (tab closed mid-add, offline),
+ * and ingestion a server request abandoned. Each item is nudged at most once per session.
+ */
+export function useResumeIngest(uid: string, items: ItemDoc[] | undefined) {
+  useEffect(() => {
+    const now = Date.now();
+    for (const item of items ?? []) {
+      // Pending server timestamps read as null: the write is seconds old.
+      const touched = (item.updatedAt as { toMillis?: () => number } | null)?.toMillis?.();
+      if (touched === undefined || resumed.has(item.id)) continue;
+      const age = now - touched;
+      const stuck = (item.ingest === "queued" && age > 20_000) || (item.ingest === "processing" && age > 3 * 60_000);
+      if (!stuck) continue;
+      resumed.add(item.id);
+      kickIngest(uid, item.id);
+    }
+  }, [uid, items]);
 }
 
-export async function setPreviewFromFile(uid: string, id: string, file: File) {
-  const ext = (file.type.split("/")[1] ?? "png").replace(/[^a-z0-9]/gi, "").slice(0, 5) || "png";
-  const path = `users/${uid}/uploads/${id}-${Date.now()}.${ext}`;
-  await uploadBytes(storageRef(firebase().storage, path), file, { contentType: file.type || "image/png" });
-  return updateDoc(doc(itemsCol(uid), id), { hints: { imagePath: path }, ingest: "queued", ingestError: null, ...touch });
+/** Counts and covers are kept by the server; tell it which projects just changed. */
+function syncProjects(projectIds: string[]) {
+  void callApi("/api/sync", { projectIds: [...new Set(projectIds)] }).catch(() => undefined);
 }
 
-export function deleteItem(uid: string, id: string) {
-  return deleteDoc(doc(itemsCol(uid), id));
+export async function retryIngest(uid: string, id: string) {
+  await updateDoc(doc(itemsCol(uid), id), { ingest: "queued", ingestError: null, ...touch });
+  kickIngest(uid, id);
+}
+
+export async function setPreviewFromUrl(uid: string, id: string, imageUrl: string) {
+  await updateDoc(doc(itemsCol(uid), id), { hints: { imageUrl }, ingest: "queued", ingestError: null, ...touch });
+  kickIngest(uid, id);
+}
+
+/** Sends a screenshot or image to become the preview. Big files are shrunk first (4 MB request cap). */
+export async function setPreviewFromFile(id: string, file: File) {
+  const form = new FormData();
+  form.append("itemId", id);
+  form.append("file", await shrinkForUpload(file), file.name || "preview");
+  await callApi("/api/ingest", form);
+}
+
+async function shrinkForUpload(file: File): Promise<Blob> {
+  if (file.size <= 3.5 * 1024 * 1024) return file;
+  const bitmap = await createImageBitmap(file);
+  // Previews top out at 1280px wide and 1:2 tall, so this keeps every pixel that gets used.
+  const scale = Math.min(1, 1920 / bitmap.width, 3840 / bitmap.height);
+  const canvas = document.createElement("canvas");
+  canvas.width = Math.round(bitmap.width * scale);
+  canvas.height = Math.round(bitmap.height * scale);
+  canvas.getContext("2d")!.drawImage(bitmap, 0, 0, canvas.width, canvas.height);
+  bitmap.close();
+  return new Promise((resolve, reject) =>
+    canvas.toBlob((b) => (b ? resolve(b) : reject(new Error("encode"))), "image/jpeg", 0.9),
+  );
+}
+
+export async function deleteItem(uid: string, id: string) {
+  await deleteDoc(doc(itemsCol(uid), id));
+  syncProjects([projectOf(id)]);
 }
 
 /** Puts a deleted item back exactly as it was (used by the undo toast). */
-export function restoreItem(uid: string, item: ItemDoc) {
+export async function restoreItem(uid: string, item: ItemDoc) {
   const { id, ...data } = item;
-  return setDoc(doc(itemsCol(uid), id), data as DocumentData);
+  await setDoc(doc(itemsCol(uid), id), data as DocumentData);
+  syncProjects([item.projectId]);
 }
 
 export async function moveItem(uid: string, item: ItemDoc, toProjectId: string): Promise<"moved" | "merged"> {
   const { db } = firebase();
   const { id, ...data } = item;
   const target = doc(itemsCol(uid), itemId(toProjectId, item.urlHash));
-  return runTransaction(db, async (tx) => {
+  const result = await runTransaction(db, async (tx) => {
     const exists = (await tx.get(target)).exists();
     if (!exists) tx.set(target, { ...data, projectId: toProjectId, updatedAt: serverTimestamp() });
     tx.delete(doc(itemsCol(uid), id));
-    return exists ? "merged" : "moved";
+    return exists ? ("merged" as const) : ("moved" as const);
   });
+  syncProjects([item.projectId, toProjectId]);
+  return result;
 }

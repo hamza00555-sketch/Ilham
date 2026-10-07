@@ -1,5 +1,5 @@
-import type { MediaType, Platform } from "../../../shared/types";
-import { youtubeId } from "../../../shared/video";
+import type { MediaType, Platform } from "@/shared/types";
+import { youtubeId } from "@/shared/video";
 import { safeFetch } from "./safeFetch";
 
 export interface ExtractedMeta {

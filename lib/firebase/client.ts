@@ -10,7 +10,6 @@ import {
   persistentMultipleTabManager,
   type Firestore,
 } from "firebase/firestore";
-import { connectStorageEmulator, getStorage, type FirebaseStorage } from "firebase/storage";
 
 export const usingEmulators = process.env.NEXT_PUBLIC_USE_EMULATORS === "true";
 
@@ -27,7 +26,6 @@ interface Clients {
   app: FirebaseApp;
   auth: Auth;
   db: Firestore;
-  storage: FirebaseStorage;
 }
 
 // Survives Fast Refresh: Firestore can only be initialized once per app.
@@ -44,14 +42,12 @@ export function firebase(): Clients {
       ? memoryLocalCache()
       : persistentLocalCache({ tabManager: persistentMultipleTabManager() }),
   });
-  const storage = getStorage(app);
 
   if (usingEmulators) {
     connectAuthEmulator(auth, "http://127.0.0.1:9099", { disableWarnings: true });
     connectFirestoreEmulator(db, "127.0.0.1", 8080);
-    connectStorageEmulator(storage, "127.0.0.1", 9199);
   }
 
-  globalForFirebase.__ilhamFirebase = { app, auth, db, storage };
+  globalForFirebase.__ilhamFirebase = { app, auth, db };
   return globalForFirebase.__ilhamFirebase;
 }

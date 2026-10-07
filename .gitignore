@@ -46,3 +46,6 @@ next-env.d.ts
 *-debug.log
 firebase-export-*/
 .emulator-data/
+
+# local preview files (dev without a Blob store)
+.blobs/

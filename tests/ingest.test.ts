@@ -1,8 +1,8 @@
 import { describe, expect, it } from "vitest";
-import { cleanTitle } from "@/functions/src/ingest/extractors";
-import { parseHtml } from "@/functions/src/ingest/metadata";
-import { asVideo, MAX_VIDEO_BYTES } from "@/functions/src/ingest/pipeline";
-import { assertPublicHost, looksBlocked, type FetchResult } from "@/functions/src/ingest/safeFetch";
+import { cleanTitle } from "@/server/ingest/extractors";
+import { parseHtml } from "@/server/ingest/metadata";
+import { asVideo, MAX_VIDEO_BYTES } from "@/server/ingest/pipeline";
+import { assertPublicHost, looksBlocked, type FetchResult } from "@/server/ingest/safeFetch";
 
 describe("parseHtml", () => {
   it("reads OpenGraph, resolves relative images and decodes entities", () => {

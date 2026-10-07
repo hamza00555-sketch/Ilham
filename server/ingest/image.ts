@@ -1,5 +1,5 @@
 import sharp from "sharp";
-import { colorBucket, extractPalette, toHex, type RGB } from "../../../shared/colors";
+import { colorBucket, extractPalette, toHex, type RGB } from "@/shared/colors";
 
 export interface ProcessedImage {
   w640: Buffer;

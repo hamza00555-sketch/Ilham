@@ -5,7 +5,7 @@ import { AnimatePresence } from "motion/react";
 import Link from "next/link";
 import { useParams } from "next/navigation";
 import { useEffect, useMemo, useRef, useState } from "react";
-import { useItems, type ItemDoc } from "@/lib/data/items";
+import { useItems, useResumeIngest, type ItemDoc } from "@/lib/data/items";
 import { usePasteShortcut } from "@/lib/keys";
 import type { ProjectDoc } from "@/lib/data/projects";
 import { cn, countLabel, PLATFORMS } from "@/lib/ui";
@@ -33,6 +33,7 @@ export function ProjectView() {
 function ProjectBoard({ project }: { project: ProjectDoc }) {
   const { uid, openAdd } = useShell();
   const { items, hasMore, loadMore, loadingMore } = useItems(uid, project.id);
+  useResumeIngest(uid, items);
   const [filter, setFilter] = useState<Platform | "all">("all");
 
   const platforms = useMemo(() => {

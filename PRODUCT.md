@@ -27,7 +27,7 @@ References come from anywhere (Dribbble, Behance, YouTube, Vimeo, Awwwards, any 
 ## Capabilities and Constraints
 
 - Built today: projects, capture paths, preview pipeline (oEmbed / OpenGraph / browser fallback → WebP previews), dedupe per project, move/delete with undo, live updates.
-- Stack: Next.js on Vercel, Firebase (Firestore, Auth, Storage, Cloud Functions).
+- Stack: Next.js on Vercel (UI + ingest route handlers + Vercel Blob for previews), Firebase on the free Spark plan (Firestore, Auth). No Blaze.
 - Data is currently scoped to a single owner (`users/{uid}`). **Open decision:** team workspaces (shared projects, members, roles) are required by the confirmed audience but not designed yet.
 - Planned: Inbox and agent API/MCP (Phase 2), scheduled curation (Phase 3), search, color and semantic search, Present Mode and client share links (Phase 4). See `docs/PLAN.md`.
 

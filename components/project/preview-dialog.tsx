@@ -48,7 +48,7 @@ export function PreviewDialog({
     if (!file) return;
     if (!file.type.startsWith("image/")) return toast.error("لازم تكون صورة");
     if (file.size > 15 * 1024 * 1024) return toast.error("الصورة أكبر من 15MB");
-    void run(() => setPreviewFromFile(uid, item.id, file));
+    void run(() => setPreviewFromFile(item.id, file));
   };
 
   const onPaste = (e: ClipboardEvent) => {
