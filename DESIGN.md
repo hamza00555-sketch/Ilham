@@ -15,38 +15,38 @@ colors:
   alarm-coral: "#ff5c5f"
 typography:
   display:
-    fontFamily: "IBM Plex Sans Arabic, Geist, system-ui, sans-serif"
+    fontFamily: "Thmanyah Sans (installed), IBM Plex Sans Arabic, Geist, system-ui, sans-serif"
     fontSize: "40px"
     fontWeight: 600
     lineHeight: 1.1
     letterSpacing: "-0.025em"
   headline:
-    fontFamily: "IBM Plex Sans Arabic, Geist, system-ui, sans-serif"
+    fontFamily: "Thmanyah Sans (installed), IBM Plex Sans Arabic, Geist, system-ui, sans-serif"
     fontSize: "20px"
     fontWeight: 600
     lineHeight: 1.3
   title:
-    fontFamily: "Geist, IBM Plex Sans Arabic, system-ui, sans-serif"
+    fontFamily: "Geist, Thmanyah Sans (installed), IBM Plex Sans Arabic, system-ui, sans-serif"
     fontSize: "15px"
     fontWeight: 500
     lineHeight: 1.4
   body:
-    fontFamily: "Geist, IBM Plex Sans Arabic, system-ui, sans-serif"
+    fontFamily: "Geist, Thmanyah Sans (installed), IBM Plex Sans Arabic, system-ui, sans-serif"
     fontSize: "14px"
     fontWeight: 400
     lineHeight: 1.6
   caption:
-    fontFamily: "Geist, IBM Plex Sans Arabic, system-ui, sans-serif"
+    fontFamily: "Geist, Thmanyah Sans (installed), IBM Plex Sans Arabic, system-ui, sans-serif"
     fontSize: "13px"
     fontWeight: 500
     lineHeight: 1.4
   label:
-    fontFamily: "Geist, IBM Plex Sans Arabic, system-ui, sans-serif"
+    fontFamily: "Geist, Thmanyah Sans (installed), IBM Plex Sans Arabic, system-ui, sans-serif"
     fontSize: "12px"
     fontWeight: 500
     lineHeight: 1.4
   micro:
-    fontFamily: "Geist, IBM Plex Sans Arabic, system-ui, sans-serif"
+    fontFamily: "Geist, Thmanyah Sans (installed), IBM Plex Sans Arabic, system-ui, sans-serif"
     fontSize: "11px"
     fontWeight: 400
     lineHeight: 1.3
@@ -159,8 +159,10 @@ A near-black neutral table with three stepped sheets, three ink levels, and one 
 
 ## Typography
 
-**Display Font:** IBM Plex Sans Arabic (with Geist)
-**Body Font:** Geist (with IBM Plex Sans Arabic)
+**Display Font:** Thmanyah Sans where installed, else IBM Plex Sans Arabic (with Geist)
+**Body Font:** Geist (with Thmanyah Sans where installed, else IBM Plex Sans Arabic)
+
+Thmanyah's license forbids serving its font files from a website, so the site never ships them: the stacks name the installed family, which Chrome, Edge and Firefox pick up on a computer that has it (Safari allows system fonts only). Every other device renders IBM Plex Sans Arabic, which the site loads itself.
 
 **Character:** One humanist Arabic voice for the interface's own words, one crisp Latin sans for the references' titles and numbers. Each script renders in its own face from the same stack, so mixed lines read as one hand.
 

@@ -58,9 +58,13 @@
   }
 }
 
+/* Arabic is set in Thmanyah Sans when the device has it installed. Its license forbids serving the
+   font files from a site, so we never ship them: the stack only names the installed family, which
+   Chrome, Edge and Firefox use (Safari allows system fonts only). Everyone else gets IBM Plex Sans
+   Arabic. Latin stays Geist in the interface stack. */
 @theme inline {
-  --font-sans: var(--font-geist), var(--font-plex-arabic), ui-sans-serif, system-ui, sans-serif;
-  --font-arabic: var(--font-plex-arabic), var(--font-geist), ui-sans-serif, system-ui, sans-serif;
+  --font-sans: var(--font-geist), "Thmanyah Sans", var(--font-plex-arabic), ui-sans-serif, system-ui, sans-serif;
+  --font-arabic: "Thmanyah Sans", var(--font-plex-arabic), var(--font-geist), ui-sans-serif, system-ui, sans-serif;
   --font-mono: var(--font-geist-mono), ui-monospace, monospace;
 }
 

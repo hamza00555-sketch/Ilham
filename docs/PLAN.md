@@ -129,7 +129,7 @@ Firebase → Firestore (البيانات، realtime) · Auth                    
 
 - **Dark-first:** الخلفية `#0B0B0C`، الكروت بدون borders، والصور هي الشي الوحيد الملوّن في الشاشة.
 - **لون واحد للإيجنت:** `Signal Lime #C6FF3D`، ما يُستخدم إلا للأشياء اللي لمسها الـ AI (badge ✦، حالة الإيجنت، الـ Inbox). كذا بنظرة وحدة تعرف مين أضاف المرجع.
-- **الخطوط:** Geist (لاتيني) + IBM Plex Sans Arabic (عربي).
+- **الخطوط:** Geist (لاتيني) + خط ثمانية (Thmanyah Sans) للعربي على الجهاز اللي مثبّت عليه، وIBM Plex Sans Arabic لباقي الأجهزة. رخصة ثمانية تمنع رفع ملفات الخط على الموقع، فما نرفعها.
 - **الحركة:** hover بـ `scale 1.02` + ظل، مدة 180ms ease-out. الكرت ينتقل لـ Quick View بـ shared-element transition، والـ swipe في الـ Inbox فيه physics حقيقية.
 
 ---
