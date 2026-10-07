@@ -2,6 +2,7 @@ import Link from "next/link";
 import type { ProjectDoc } from "@/lib/data/projects";
 import { cn, countLabel } from "@/lib/ui";
 import type { CoverTile } from "@/shared/types";
+import { ProjectMenu } from "../project/project-menu";
 import { Spark } from "../ui/brand";
 
 function Tile({ tile, className }: { tile: CoverTile; className?: string }) {
@@ -54,23 +55,27 @@ function Cover({ tiles }: { tiles: CoverTile[] }) {
 
 export function ProjectCard({ project, index }: { project: ProjectDoc; index: number }) {
   return (
-    <Link
-      href={`/p/${project.slug}`}
-      className="group block animate-rise"
-      style={{ animationDelay: `${Math.min(index, 10) * 35}ms` }}
-    >
-      <span className="relative block aspect-[4/3] overflow-hidden rounded-card bg-raised ring-1 ring-line ring-inset">
-        <Cover tiles={project.cover ?? []} />
-      </span>
-      <span className="mt-3 flex items-baseline justify-between gap-3 px-0.5">
-        <span className="truncate text-[15px] font-medium" dir="auto">
-          {project.name}
+    <div className="group relative animate-rise" style={{ animationDelay: `${Math.min(index, 10) * 35}ms` }}>
+      <Link href={`/p/${project.slug}`} className="block">
+        <span className="relative block aspect-[4/3] overflow-hidden rounded-card bg-raised ring-1 ring-line ring-inset">
+          <Cover tiles={project.cover ?? []} />
         </span>
-        <span className="shrink-0 text-xs text-ink-faint">
-          {countLabel(project.counts?.kept ?? 0)}
-          {project.counts?.inbox ? <span className="ms-2 text-signal">✦ {project.counts.inbox}</span> : null}
+        <span className="mt-3 flex items-baseline justify-between gap-3 px-0.5">
+          <span className="truncate text-[15px] font-medium" dir="auto">
+            {project.name}
+          </span>
+          <span className="shrink-0 text-xs text-ink-faint">
+            {countLabel(project.counts?.kept ?? 0)}
+            {project.counts?.inbox ? <span className="ms-2 text-signal">✦ {project.counts.inbox}</span> : null}
+          </span>
         </span>
-      </span>
-    </Link>
+      </Link>
+      {/* Sibling of the link (a menu can't live inside <a>); shows on hover or focus on desktop. */}
+      <ProjectMenu
+        project={project}
+        trigger="overlay"
+        className="absolute top-0.5 end-0.5 md:top-1 md:end-1 md:opacity-0 md:group-hover:opacity-100 md:focus-visible:opacity-100 md:data-[state=open]:opacity-100"
+      />
+    </div>
   );
 }

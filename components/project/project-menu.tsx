@@ -6,12 +6,27 @@ import { useState, type FormEvent } from "react";
 import { toast } from "sonner";
 import { deleteProject, renameProject, type ProjectDoc } from "@/lib/data/projects";
 import { friendlyError } from "@/lib/errors";
+import { cn } from "@/lib/ui";
 import { useShell } from "../shell/shell-context";
 import { Button } from "../ui/button";
 import { Dialog, Field, inputClass } from "../ui/dialog";
 import { Menu, MenuContent, MenuItem, MenuSeparator, MenuTrigger } from "../ui/menu";
 
-export function ProjectMenu({ project }: { project: ProjectDoc }) {
+/**
+ * Rename / delete. `trigger="overlay"` is the quiet dot that sits on a cover (home grid);
+ * `leaveOnDelete` sends you home when deleting the project you're inside.
+ */
+export function ProjectMenu({
+  project,
+  trigger = "button",
+  leaveOnDelete = false,
+  className,
+}: {
+  project: ProjectDoc;
+  trigger?: "button" | "overlay";
+  leaveOnDelete?: boolean;
+  className?: string;
+}) {
   const router = useRouter();
   const { uid } = useShell();
   const [renaming, setRenaming] = useState(false);
@@ -21,7 +36,7 @@ export function ProjectMenu({ project }: { project: ProjectDoc }) {
   const remove = async () => {
     setBusy(true);
     try {
-      router.push("/");
+      if (leaveOnDelete) router.push("/");
       await deleteProject(uid, project.id);
       toast(`انحذف «${project.name}»`);
     } catch (err) {
@@ -35,11 +50,23 @@ export function ProjectMenu({ project }: { project: ProjectDoc }) {
   return (
     <>
       <Menu>
-        <MenuTrigger asChild>
-          <Button variant="secondary" size="icon" className="max-md:size-11" aria-label="خيارات المشروع">
-            <MoreHorizontal className="size-4" />
-          </Button>
-        </MenuTrigger>
+        {trigger === "overlay" ? (
+          // Same as the item cards: 44px hit area on phones around a quiet 28px dot.
+          <MenuTrigger
+            className={cn("group/menu grid size-11 place-items-center rounded-full transition-opacity md:size-9", className)}
+            aria-label={`خيارات «${project.name}»`}
+          >
+            <span className="grid size-7 place-items-center rounded-full bg-black/35 text-white backdrop-blur transition-colors group-hover/menu:bg-black/70 group-data-[state=open]/menu:bg-black/70 md:size-8 md:bg-black/55">
+              <MoreHorizontal className="size-4" />
+            </span>
+          </MenuTrigger>
+        ) : (
+          <MenuTrigger asChild>
+            <Button variant="secondary" size="icon" className={cn("max-md:size-11", className)} aria-label="خيارات المشروع">
+              <MoreHorizontal className="size-4" />
+            </Button>
+          </MenuTrigger>
+        )}
         <MenuContent align="end">
           <MenuItem icon={<Pencil />} onSelect={() => setRenaming(true)}>
             إعادة تسمية

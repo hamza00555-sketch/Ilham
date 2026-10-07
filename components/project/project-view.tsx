@@ -72,7 +72,7 @@ function ProjectBoard({ project }: { project: ProjectDoc }) {
               <Plus className="size-4" />
               أضف مرجع
             </Button>
-            <ProjectMenu project={project} />
+            <ProjectMenu project={project} leaveOnDelete />
           </div>
         </div>
 
