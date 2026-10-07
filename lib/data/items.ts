@@ -156,7 +156,8 @@ const resumed = new Set<string>();
 
 /**
  * Restarts ingestion the browser asked for but never saw start (tab closed mid-add, offline),
- * and ingestion a server request abandoned. Each item is nudged at most once per session.
+ * ingestion a server request abandoned, and ingestion our own server failed ("internal", e.g. a
+ * bad deploy; not the source site refusing). Each item is nudged at most once per session.
  */
 export function useResumeIngest(uid: string, items: ItemDoc[] | undefined) {
   useEffect(() => {
@@ -167,9 +168,11 @@ export function useResumeIngest(uid: string, items: ItemDoc[] | undefined) {
       if (touched === undefined || resumed.has(item.id)) continue;
       const age = now - touched;
       const stuck = (item.ingest === "queued" && age > 20_000) || (item.ingest === "processing" && age > 3 * 60_000);
-      if (!stuck) continue;
+      const serverFailed = item.ingest === "failed" && item.ingestError === "internal";
+      if (!stuck && !serverFailed) continue;
       resumed.add(item.id);
-      kickIngest(uid, item.id);
+      if (serverFailed) void retryIngest(uid, item.id).catch(() => undefined);
+      else kickIngest(uid, item.id);
     }
   }, [uid, items]);
 }
