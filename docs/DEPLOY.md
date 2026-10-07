@@ -100,11 +100,12 @@ npm run deploy:firebase      # يرفع firestore.rules و firestore.indexes.jso
 ### 8. أنشئ مخزن البريفيوهات (Blob)
 
 1. في صفحة المشروع على Vercel: **Storage ← Create Database ← Blob ← Continue**.
-2. سمّه `ilham-previews`.
-   - **Region:** اختار الأقرب لك (مثلاً **fra1** أو **iad1**).
-   - ← **Create**.
-3. اربطه بالمشروع **ilham** لكل البيئات (Production · Preview · Development) ← **Connect**.
-   - هذا يضيف `BLOB_READ_WRITE_TOKEN` لحاله.
+2. عبّي النافذة كذا:
+   - **Store Name:** `ilham-previews`
+   - **Region:** `iad1` (نفس منطقة السيرفر).
+   - **Access:** **Public** ⚠️ مو Private. البريفيوهات صور تنعرض في الصفحة، وكل رابط فيه اسم عشوائي ما ينخمّن.
+   - ✅ فعّل **Add a read-write token env var to this connection**. الكود يحتاج `BLOB_READ_WRITE_TOKEN`.
+   - ← **Create**، وبعدها اربطه بمشروع **ilham** ← **Connect**.
 4. **Deployments ←** آخر deployment ← **⋯ ← Redeploy**. المتغيرات الجديدة ما تشتغل إلا على deploy جديد.
 
 ### 9. انسخ الدومين
