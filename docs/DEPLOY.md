@@ -106,7 +106,7 @@ npm run deploy:firebase      # يرفع firestore.rules و firestore.indexes.jso
    - **Access:** **Public** ⚠️ مو Private. البريفيوهات صور تنعرض في الصفحة، وكل رابط فيه اسم عشوائي ما ينخمّن.
    - ✅ فعّل **Add a read-write token env var to this connection**. الكود يحتاج `BLOB_READ_WRITE_TOKEN`.
    - ← **Create**، وبعدها اربطه بمشروع **ilham** ← **Connect**.
-4. **Deployments ←** آخر deployment ← **⋯ ← Redeploy**. المتغيرات الجديدة ما تشتغل إلا على deploy جديد.
+3. **Deployments ←** آخر deployment ← **⋯ ← Redeploy**. المتغيرات الجديدة ما تشتغل إلا على deploy جديد.
 
 ### 9. انسخ الدومين
 
