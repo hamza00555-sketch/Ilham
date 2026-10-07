@@ -21,13 +21,40 @@
 | القرار | الاختيار | ليش |
 |---|---|---|
 | Frontend | **Next.js** (App Router) + TypeScript + Tailwind v4 + shadcn/ui + Motion | سريع للبناء، SSR للبريفيوهات، وبيئة قوية |
-| Backend / DB | **Supabase** (Postgres + Auth + Storage + pgvector) | كل شي في مكان واحد، وفيه RLS. وهو موصول عندك MCP |
-| Hosting | **Vercel** | Deploy من GitHub مباشرة، وموصول عندك MCP |
+| Backend | **Firebase**: Firestore + Auth + Cloud Storage + Cloud Functions | Console واحد، و realtime جاهز، و triggers بدل الـ queues |
+| Hosting | **Vercel** للواجهة والـ API والـ MCP، و **Firebase** للبيانات والمعالجة | Vercel هو الأفضل لـ Next.js ومجاني، و Firebase يشيل الشغل الثقيل |
 | واجهة الإيجنت | **REST API v1 + Remote MCP server** (`/api/mcp`) | أي إيجنت أو أداة أتمتة (Claude، n8n، Make) تقدر تضيف |
-| البريفيوهات | **نخزنها عندنا** في Supabase Storage (WebP) | الروابط تموت والمواقع تمنع الـ hotlink، والبريفيو لازم يكون ثابت |
+| البريفيوهات | **نخزنها عندنا** في Cloud Storage (WebP) | الروابط تموت والمواقع تمنع الـ hotlink، والبريفيو لازم يكون ثابت |
 | شكل الشبكة | **4:3 uniform** (نفس نسبة Dribbble) افتراضياً + خيار Masonry | شكل نظيف ومتناسق مثل الاستوديوهات |
-| المستخدمين | **Single-user أول**، بس السكيما جاهزة لأكثر من مستخدم (`owner_id` + RLS) | نطلق بسرعة بدون ما نعيد البناء بعدين |
+| المستخدمين | **Single-user أول**، بس كل البيانات تحت `users/{uid}` | جاهز لأكثر من مستخدم بدون إعادة بناء |
 | الاتجاه | **RTL-ready** من أول يوم (Tailwind logical properties) | عربي/إنجليزي بدون إعادة تصميم |
+
+### التقسيم بين المنصتين
+
+```
+Vercel   → الواجهة (Next.js) · REST API v1 · MCP server       ← "البوابة"
+Firebase → Firestore · Auth · Storage · Functions (ingestion, schedules) ← "العضلات"
+```
+
+> إذا تبي كل شي في console واحد، Firebase App Hosting يشغّل Next.js بعد. بس Vercel أنعم في التطوير، وعنده preview لكل branch، ومجاني.
+
+### Firebase — أشياء لازم تعرفها قبل تبدأ
+
+| الموضوع | الواقع | وش نسوي |
+|---|---|---|
+| **خطة Blaze** | Cloud Functions تحتاج Blaze، و Cloud Storage صار يحتاجها بعد من 3 فبراير 2026 | نفعّل Blaze من البداية. فيها كوتا مجانية، فبهذا الحجم غالباً ما بتدفع شي |
+| **حط تنبيه ميزانية** | Blaze تحاسبك على اللي تستهلكه، ما فيها سقف | Budget alert على $5 و $10 من Google Cloud Billing |
+| **المنطقة** | كوتا Storage المجانية بس في `us-central1` و `us-west1` و `us-east1`، ومكان Firestore **ما يتغير بعدين** | كل شي على **`us-central1`** |
+| **الجدولة** | كل `onSchedule` يصير job في Cloud Scheduler، وأول 3 jobs لكل billing account مجانية | job وحد يومي يكفي لكل المشاريع |
+
+**الكوتا المجانية اللي تهمنا:**
+
+| المنتج | المجاني | استهلاك Ilham المتوقع |
+|---|---|---|
+| Firestore | 1 GiB تخزين · 50K قراءة/يوم · 20K كتابة/يوم | ~20K قراءة/يوم و ~1K كتابة/يوم |
+| Cloud Storage | 5 GB-months · 100 GB تحميل/شهر | ~1.5 GB لـ 10K مرجع · ~25 GB تحميل/شهر |
+| Cloud Functions | 2M invocation/شهر | ~10K/شهر |
+| Auth | 50K MAU | مستخدم واحد |
 
 ---
 
@@ -50,7 +77,8 @@
 - **Hover (كمبيوتر):** gradient من تحت + العنوان + favicon المنصة + اسم المصمم. الفيديو والـ GIF يشتغلون muted loop.
 - **جوال:** الفيديو يشتغل لما يوصل الكرت نص الشاشة (IntersectionObserver).
 - **Badge ✦** على المراجع اللي جابها الإيجنت، وفيه tooltip يقول **ليش اختارها**.
-- **Click:** يفتح `source_url` في تاب جديد (`noopener`).
+- **Live:** الواجهة تسمع لـ Firestore (`onSnapshot`). تلصق الرابط، يطلع skeleton، وأول ما تخلص المعالجة يتحول بريفيو قدامك بدون refresh.
+- **Click:** يفتح `sourceUrl` في تاب جديد (`noopener`).
 
 ### Wireframes
 
@@ -102,125 +130,122 @@
 
 ---
 
-## 4. Data Model (Supabase / Postgres)
+## 4. Data Model (Firestore)
 
-```sql
--- المشاريع
-create table projects (
-  id            uuid primary key default gen_random_uuid(),
-  owner_id      uuid not null references auth.users on delete cascade,
-  slug          text not null,
-  name          text not null,
-  description   text,
-  brief         jsonb not null default '{}',   -- تعليمات الإيجنت (شوف القسم 6)
-  auto_curate   boolean not null default false,
-  webhook_url   text,                          -- زر "Find more"
-  visibility    text not null default 'private'
-                check (visibility in ('private','unlisted','public')),
-  share_token   text unique,
-  created_at    timestamptz not null default now(),
-  unique (owner_id, slug)
-);
+Firestore ما فيه joins، فنصممه **flat و denormalized**. كل الشبكة تجي من query وحدة.
 
--- المرجع نفسه (يتخزن مرة وحدة، ويقدر يكون في أكثر من مشروع)
-create table items (
-  id              uuid primary key default gen_random_uuid(),
-  owner_id        uuid not null references auth.users on delete cascade,
-  source_url      text not null,
-  canonical_url   text not null,
-  url_hash        text not null,              -- sha256(canonical_url)
-  platform        text,                       -- dribbble | behance | vimeo | awwwards | ...
-  media_type      text,                       -- image | video | gif | website
-  title           text,
-  author_name     text,
-  author_url      text,
-  preview_path    text,                       -- previews/{id}/1280.webp
-  video_path      text,                       -- loop قصير (Phase 3)
-  width int, height int,
-  dominant_color  text,
-  palette         text[],
-  blurhash        text,
-  phash           text,                       -- يكشف نفس العمل لو انتشر في أكثر من منصة
-  tags            text[] not null default '{}',
-  embedding       vector(1024),               -- Phase 4: semantic search
-  created_at      timestamptz not null default now(),
-  unique (owner_id, url_hash)
-);
+```
+users/{uid}
+├── projects/{projectId}
+│     slug, name, description,
+│     brief{}            ← تعليمات الإيجنت (شوف القسم 6)
+│     autoCurate, webhookUrl, visibility, shareToken,
+│     cover[]            ← آخر 4 previews (للغلاف بدون queries زيادة)
+│     counts{ kept, inbox }, createdAt
+│
+├── items/{projectId}__{urlHash}      ← ID مركّب = dedupe مجاني
+│     projectId, urlHash, sourceUrl, canonicalUrl,
+│     platform, mediaType, title, authorName, authorUrl,
+│     preview{ w640, w1280, video?, width, height, blurhash, dominantColor },
+│     colorBuckets[]     ← "teal-dark", "orange-mid" … للبحث باللون
+│     searchTokens[]     ← كلمات العنوان والتاقات (lowercase) للبحث البسيط
+│     tags[],
+│     status:  inbox | kept | discarded
+│     ingest:  queued | processing | ready | failed
+│     addedBy: user | agent,  agentRunId, reason, note, position,
+│     embedding          ← Vector (Phase 4)
+│     addedAt
+│
+└── agentRuns/{runId}
+      projectId, trigger, query, status, itemsAdded, summary, startedAt, finishedAt
 
--- جلسات الإيجنت
-create table agent_runs (
-  id            uuid primary key default gen_random_uuid(),
-  project_id    uuid not null references projects on delete cascade,
-  trigger       text not null,               -- manual | schedule | webhook
-  query         text,
-  status        text not null default 'running',
-  items_added   int not null default 0,
-  summary       text,
-  started_at    timestamptz not null default now(),
-  finished_at   timestamptz
-);
+apiKeys/{sha256(key)}   ← top-level: نلقى صاحب المفتاح مباشرة من الـ hash
+      ownerId, name, scopes[], lastUsedAt, createdAt
 
--- ربط المرجع بالمشروع
-create table project_items (
-  project_id    uuid references projects on delete cascade,
-  item_id       uuid references items on delete cascade,
-  status        text not null default 'kept'
-                check (status in ('inbox','kept','discarded')),
-  added_by      text not null check (added_by in ('user','agent')),
-  agent_run_id  uuid references agent_runs on delete set null,
-  reason        text,                         -- ليش الإيجنت اختاره
-  note          text,
-  position      double precision,             -- الترتيب اليدوي
-  added_at      timestamptz not null default now(),
-  primary key (project_id, item_id)
-);
-
--- مفاتيح الإيجنت
-create table api_keys (
-  id            uuid primary key default gen_random_uuid(),
-  owner_id      uuid not null references auth.users on delete cascade,
-  name          text not null,                -- "claude-curator", "n8n"
-  key_hash      text not null unique,         -- ما نخزن المفتاح نفسه أبداً
-  scopes        text[] not null default '{projects:read,items:write}',
-  last_used_at  timestamptz,
-  created_at    timestamptz not null default now()
-);
+shares/{shareToken}     ← روابط العميل (read-only)
+      ownerId, projectId
 ```
 
-**RLS:** كل جدول عليه `owner_id = auth.uid()`. الـ API يتحقق من المفتاح ويشتغل بالـ service role على `owner_id` صاحب المفتاح.
+**ليش الـ ID مركّب؟** `{projectId}__{urlHash}` يخلي نفس الرابط ما يتكرر في نفس المشروع. `create()` يفشل لو موجود، فنرجّع `duplicate` بدون أي query. ولو نفس المرجع انضاف لمشروع ثاني، يصير doc ثاني بس **البريفيو نفسه** يُستخدم من Storage (المسار مبني على `urlHash`).
+
+**Indexes:**
+- `items`: `projectId + status + addedAt desc` (الشبكة والـ Inbox)
+- `items`: `projectId + colorBuckets (array-contains) + addedAt desc` (البحث باللون)
+- `items`: vector index على `embedding` (Phase 4)
+
+### Security Rules
+
+```js
+// firestore.rules
+rules_version = '2';
+service cloud.firestore {
+  match /databases/{db}/documents {
+    match /users/{uid}/{document=**} {
+      allow read, write: if request.auth != null && request.auth.uid == uid;
+    }
+    match /apiKeys/{id}  { allow read, write: if false; }  // Admin SDK بس
+    match /shares/{tok}  { allow read, write: if false; }
+  }
+}
+```
+
+```js
+// storage.rules
+rules_version = '2';
+service firebase.storage {
+  match /b/{bucket}/o {
+    // الـ previews تكتبها Functions بس، وتنعرض بروابط download token
+    match /users/{uid}/previews/{all=**} { allow read, write: if false; }
+    // رفع الصور بالسحب (drag & drop)
+    match /users/{uid}/uploads/{file} {
+      allow write: if request.auth.uid == uid
+                   && request.resource.size < 15 * 1024 * 1024
+                   && request.resource.contentType.matches('image/.*|video/.*');
+    }
+  }
+}
+```
+
+**Auth:** Google Sign-In (ضغطة وحدة) + Email link احتياط. بعد ما تسجل، تقفل التسجيل الجديد من Authentication → Settings عشان ما أحد ثاني يفتح حساب.
 
 ---
 
 ## 5. Ingestion Pipeline — كيف الرابط يصير بريفيو
 
+الفكرة: **كتابة doc = تشغيل الـ pipeline.** ما نحتاج queue ولا Inngest. Firestore trigger يشغّل Cloud Function، وفيها retries جاهزة.
+
 ```mermaid
 flowchart LR
   A[URL from user / agent] --> B[Normalize + hash]
-  B --> C{Exists in project?}
-  C -- yes --> Z[Return existing - idempotent]
-  C -- no --> D[Fetch metadata<br/>oEmbed → OpenGraph → platform extractor]
+  B --> C{"create items/{pid}__{hash}"}
+  C -- exists --> Z[Return duplicate]
+  C -- created, ingest=queued --> T[["Cloud Function<br/>onDocumentCreated"]]
+  T --> D[Fetch metadata<br/>oEmbed → OpenGraph → extractor]
   D --> E{Image found?}
   E -- yes --> F[Download image]
   E -- no --> G[Screenshot fallback]
   F --> H[sharp: WebP 640 + 1280<br/>blurhash · palette · size]
   G --> H
-  H --> I[Supabase Storage]
-  I --> J{Added by}
-  J -- agent --> K[Inbox]
-  J -- user --> L[Kept]
+  H --> I[Cloud Storage]
+  I --> U["update doc: ingest=ready + preview{}"]
+  U --> L[UI updates live via onSnapshot]
 ```
 
-1. **Normalize:** نشيل `utm_*` و `fbclid` و `ref`، والـ host يصير lowercase، ونشيل الـ trailing slash. بعدها نحسب `url_hash`.
-2. **Dedupe:** لو الرابط موجود نرجّع نفس العنصر. يعني الإيجنت يقدر يرسل نفس الرابط عشر مرات وما يتكرر.
-3. **Metadata:** نجرب oEmbed أول (YouTube، Vimeo)، بعدها OpenGraph/Twitter Cards، وبعدها extractor خاص بالمنصة.
-4. **Preview:** إذا الإيجنت أرسل `image_url` نستخدمه، وإلا ناخذ `og:image`، وإذا ما لقينا شي نسوي screenshot (Playwright أو خدمة مثل Microlink / ScreenshotOne).
-5. **Processing:** بـ `sharp` نطلع مقاسين WebP (640 و 1280) + blurhash + palette + الأبعاد. تقريباً 150KB للعنصر.
-6. **Status:** إذا الإيجنت هو اللي أضاف يروح `inbox`، وإذا أنت `kept`.
+1. **Normalize** (في `shared/normalize.ts`، مشترك بين الواجهة والـ API): نشيل `utm_*` و `fbclid` و `ref`، والـ host يصير lowercase، ونشيل الـ trailing slash. بعدها نحسب `urlHash` (SHA-256).
+2. **Create:** الواجهة تكتب الـ doc مباشرة (الـ rules تسمح لك)، والـ API يكتبه بـ Admin SDK. الحالة تبدأ `ingest: 'queued'`، و `status` يكون `inbox` إذا من الإيجنت أو `kept` إذا منك.
+3. **Trigger:** `onDocumentCreated('users/{uid}/items/{itemId}')` بـ `memory: 1GiB` و `timeoutSeconds: 120` و `retry: true`.
+4. **Metadata:** oEmbed أول (YouTube، Vimeo)، بعدها OpenGraph/Twitter Cards، وبعدها extractor خاص بالمنصة.
+5. **Preview:** إذا الإيجنت أرسل `imageUrl` نستخدمه، وإلا `og:image`، وإذا ما لقينا شي نسوي screenshot (خدمة مثل Microlink / ScreenshotOne، أو Puppeteer داخل Function بـ 2GiB).
+6. **Processing:** `sharp` يشتغل عادي في Cloud Functions، ويطلع مقاسين WebP (640 و 1280) + blurhash + palette + `colorBuckets` + الأبعاد. تقريباً 150KB للمرجع.
+7. **Store:** `users/{uid}/previews/{urlHash}/640.webp` مع `Cache-Control: public, max-age=31536000, immutable`، والرابط ناخذه من `getDownloadURL()` في Admin SDK.
+8. **Update:** `ingest: 'ready'` + `preview{}`. والواجهة تتحدث لحالها.
+
+**Retries بأمان:** الـ function لازم تكون idempotent (إذا البريفيو موجود في Storage تتخطى المعالجة)، وتتجاهل الأحداث اللي عمرها أكثر من 10 دقايق، وبعد 3 محاولات فاشلة تحط `ingest: 'failed'` والكرت يطلع فيه زر "Retry".
 
 **Extractors** — كل منصة لها ملف صغير بنفس الـ interface:
 
 ```ts
-// lib/ingest/extractors/types.ts
+// functions/src/ingest/extractors/types.ts
 export interface Extractor {
   platform: string
   match(url: URL): boolean
@@ -232,9 +257,13 @@ export interface Extractor {
 
 **Security:** حماية من SSRF (نمنع الـ IPs الداخلية والـ localhost)، timeout بـ 10 ثواني، وحد أقصى للصورة 15MB.
 
+**Next/Image:** البريفيوهات جاهزة بمقاساتها، فنستخدم `unoptimized` أو custom loader عشان ما نستهلك كوتا تحسين الصور في Vercel.
+
 ---
 
 ## 6. طبقة الإيجنت
+
+الـ API والـ MCP يعيشون في Next.js على Vercel، ويتكلمون مع Firestore بـ **Firebase Admin SDK** (service account في env vars).
 
 ### REST API v1
 
@@ -249,17 +278,17 @@ export interface Extractor {
 | `GET` | `/api/v1/projects/{slug}/taste` | ملخص ذوقك: وش احتفظت فيه ووش رميته |
 | `POST` / `PATCH` | `/api/v1/runs` · `/api/v1/runs/{id}` | يسجل جلسة الإيجنت |
 
-**Auth:** `Authorization: Bearer ilham_sk_…`، المفتاح يتخزن hashed وله scopes.
+**Auth:** `Authorization: Bearer ilham_sk_…`. نحسب `sha256(key)` ونقرأ `apiKeys/{hash}` مباشرة، فنعرف الـ `ownerId` والـ scopes بقراءة وحدة. المفتاح نفسه ما يتخزن أبداً.
 
 ```bash
 curl -X POST https://ilham.vercel.app/api/v1/projects/vr-onboarding/items \
   -H "Authorization: Bearer $ILHAM_KEY" \
   -H "Content-Type: application/json" \
   -d '{
-    "agent_run_id": "…",
+    "agentRunId": "…",
     "items": [{
       "url": "https://dribbble.com/shots/…",
-      "image_url": "https://cdn.dribbble.com/…/shot.png",
+      "imageUrl": "https://cdn.dribbble.com/…/shot.png",
       "title": "Spatial onboarding — visionOS",
       "tags": ["type:ui", "tech:visionos", "style:glass"],
       "reason": "Depth layering + glass panels match the brief's spatial-UI mood"
@@ -268,7 +297,7 @@ curl -X POST https://ilham.vercel.app/api/v1/projects/vr-onboarding/items \
 # → 202 { "items": [{ "id": "…", "status": "queued" | "duplicate" }] }
 ```
 
-> اللي يرسله الإيجنت نعتبره **hints**. السيرفر دايم يعيد جلب الـ metadata بنفسه، فالبريفيو يطلع صحيح حتى لو الإيجنت غلط.
+> اللي يرسله الإيجنت نعتبره **hints**. الـ Function دايم تعيد جلب الـ metadata بنفسها، فالبريفيو يطلع صحيح حتى لو الإيجنت غلط.
 
 ### MCP Server (`/api/mcp`)
 
@@ -281,7 +310,7 @@ curl -X POST https://ilham.vercel.app/api/v1/projects/vr-onboarding/items \
 | `create_project(name, brief?)` | مشروع جديد |
 | `add_inspiration(project, items[])` | يضيف batch |
 | `get_taste(project)` | ذوقك عشان يتعلم منه |
-| `start_run(project, query)` / `finish_run(run_id, summary)` | سجل الجلسات |
+| `start_run(project, query)` / `finish_run(runId, summary)` | سجل الجلسات |
 
 نبنيه بـ Vercel MCP adapter (`mcp-handler`). في Claude Code يتربط كذا:
 
@@ -317,7 +346,7 @@ min_quality: high    # المصمم الأصلي بس، لا reposts ولا aggr
 | النمط | كيف يشتغل | مثال |
 |---|---|---|
 | **A. On-demand** | تكلم الإيجنت مباشرة وهو يستخدم الـ MCP | "جب لي 10 مراجع motion لـ logo reveals وحطها في `brand-x-motion`" |
-| **B. Scheduled** | Routine (Claude Code أو n8n) يمر على كل مشروع `auto_curate = true` | كل يوم 9 الصبح |
+| **B. Scheduled** | Function وحدة `onSchedule` (مثلاً `every day 09:00` على منطقتك الزمنية) تمر على كل مشروع `autoCurate = true` وترسل الـ brief لأتمتتك (Claude routine أو n8n) | كل صباح يتعبى الـ Inbox |
 | **C. Find more** | زر داخل المشروع يرسل webhook لأتمتتك ومعه الـ brief | تضغط ✦ وبعد دقيقة يتعبى الـ Inbox |
 
 ### Agent Prompt Template
@@ -330,7 +359,7 @@ You are Ilham's curator agent.
 4. Search the brief's sources for {quota} pieces matching mood + keywords.
    Skip anything in `exclude` or already in the project.
 5. Prefer the original creator's page — no reposts, no aggregators.
-6. For each pick: url, direct high-res image_url, title,
+6. For each pick: url, direct high-res imageUrl, title,
    3–5 namespaced tags, and a one-sentence reason tied to the brief.
 7. add_inspiration in ONE batch, then finish_run with a 2-line summary.
 ```
@@ -362,7 +391,8 @@ You are Ilham's curator agent.
   | `tech:` | `visionos` · `webgl` · `c4d` · `blender` · `unreal` · `spline` |
   | `mood:` | `cinematic` · `playful` · `luxury` · `dark` |
 
-- **Storage:** `previews/{item_id}/640.webp` · `previews/{item_id}/1280.webp` · `videos/{item_id}/loop.mp4`
+- **Storage:** `users/{uid}/previews/{urlHash}/640.webp` · `…/1280.webp` · `…/loop.mp4` · `users/{uid}/uploads/{file}`
+- **Firestore:** collections بصيغة camelCase (`agentRuns`, `apiKeys`)، والحقول camelCase بعد.
 - **API keys:** اسم واضح لكل أداة، مثل `claude-curator` و `n8n-daily` و `ios-shortcut`. كذا تقدر تلغي أي وحدة لحالها.
 
 ---
@@ -380,24 +410,39 @@ ilham/
 │   │   └── settings/                  # API keys · webhooks
 │   ├── share/[token]/page.tsx         # رابط العميل (read-only)
 │   └── api/
-│       ├── v1/                        # REST
+│       ├── v1/                        # REST (Admin SDK)
 │       └── mcp/route.ts               # MCP server
 ├── components/
 │   ├── grid/                          # Grid · Card · CardVideo · Masonry
 │   ├── triage/                        # SwipeDeck
 │   └── ui/                            # shadcn
 ├── lib/
-│   ├── ingest/
-│   │   ├── normalize.ts
-│   │   ├── metadata.ts
-│   │   ├── preview.ts
-│   │   ├── dedupe.ts
-│   │   └── extractors/                # dribbble.ts · behance.ts · vimeo.ts …
-│   ├── api/                           # auth.ts · schemas.ts (zod)
-│   └── supabase/
-├── supabase/migrations/
+│   ├── firebase/                      # client.ts · admin.ts
+│   └── api/                           # auth.ts · schemas.ts (zod)
+├── shared/                            # normalize.ts · types.ts (للواجهة والـ functions)
+├── functions/                         # Cloud Functions (Node 22, bundled بـ tsup)
+│   └── src/
+│       ├── ingest/
+│       │   ├── onItemCreated.ts
+│       │   ├── metadata.ts
+│       │   ├── preview.ts             # sharp · blurhash · palette
+│       │   └── extractors/            # dribbble.ts · behance.ts · vimeo.ts …
+│       └── schedule/dailyCurate.ts
+├── firestore.rules
+├── firestore.indexes.json
+├── storage.rules
+├── firebase.json                      # + إعدادات الـ Emulators
 └── docs/PLAN.md
 ```
+
+### أدوات التطوير
+
+- **Firebase Emulator Suite:** Firestore و Auth و Storage و Functions كلها تشتغل محلياً، فتجرب الـ pipeline كامل بدون ما تلمس البيانات الحقيقية.
+- **Firebase MCP في Claude Code:** يخلّي Claude يدير المشروع والـ rules والبيانات مباشرة وقت البناء:
+  ```bash
+  claude plugin marketplace add firebase/firebase-tools
+  claude plugin install firebase@firebase
+  ```
 
 ---
 
@@ -406,49 +451,48 @@ ilham/
 > التقديرات على افتراض إننا نبني مع Claude Code.
 
 ### Phase 0 — Foundation · تقريباً يوم
-- Next.js + TS + Tailwind + shadcn + ESLint/Prettier
-- مشروع Supabase + migrations + RLS
-- مشروع Vercel + env vars + Preview deploys
+- Firebase project على **Blaze** + budget alert + كل شي على `us-central1`
+- تفعيل Firestore و Auth (Google + Email link) و Storage و Functions
+- Emulators + Firebase MCP
+- Next.js + TS + Tailwind + shadcn على Vercel، و env vars (Firebase config + service account)
 - Design tokens (dark/light + RTL)
 
-**✅ Done when:** صفحة login منشورة على Vercel وشغالة.
+**✅ Done when:** تسجل دخول بـ Google على رابط Vercel، والـ rules تمنع أي أحد غيرك.
 
 ### Phase 1 — MVP Core · تقريباً أسبوع
-- Auth (magic link)
 - Projects CRUD + covers تلقائية
 - Add by URL: Paste، `Cmd+V`، FAB
-- Ingestion v1: normalize → oEmbed/OG → preview → sharp → storage
-- Grid 4:3 + hover + click to source + infinite scroll (cursor)
+- Ingestion v1: `onItemCreated` → oEmbed/OG → preview → sharp → Storage
+- Grid 4:3 + hover + click to source + infinite scroll (cursor) + تحديث live
 - Responsive كامل + bottom nav
 
 **✅ Done when:** تلصق رابط Dribbble من الجوال، يطلع كرت ببريفيو في أقل من 5 ثواني، وتضغط عليه يفتح لك الشوت الأصلي.
 
 ### Phase 2 — Agent Layer · تقريباً 4 أيام
-- API keys (hashed + scopes) + صفحة إدارتها
+- `apiKeys` (hashed + scopes) + صفحة إدارتها
 - REST v1 + zod validation + batch + idempotency
 - MCP server
 - Inbox + Swipe triage
-- Badge ✦ + reason + سجل `agent_runs`
+- Badge ✦ + reason + سجل `agentRuns`
 
 **✅ Done when:** تقول لـ Claude "جب 10 مراجع spatial UI لمشروع `vr-onboarding`"، وخلال دقيقة تلقاها في الـ Inbox ومعها أسبابها.
 
 ### Phase 3 — Automation · تقريباً 4 أيام
-- محرر الـ Brief (form يحفظ في jsonb)
-- Scheduled curation (Claude routine أو n8n)
-- زر "Find more" + webhooks
+- محرر الـ Brief (form يحفظ في `brief{}`)
+- `dailyCurate` بـ `onSchedule` + زر "Find more" + webhooks
 - `get_taste` endpoint
 - Extractors خاصة لكل منصة + video loops (mp4 ≤ 3MB)
 - pHash dedupe بين المنصات
-- Background jobs (Inngest أو Supabase Queues) بدل المعالجة inline
+- زر Retry للمراجع اللي فشلت معالجتها
 
 **✅ Done when:** كل صباح تفتح الـ Inbox وتلقى مراجع جديدة لكل مشروع مفعّل، بدون تكرار.
 
 ### Phase 4 — Wow & Polish
 - **PWA + Share Target** (Android) + **iOS Shortcut** يرسل للـ API (iOS ما يدعم Share Target)
 - Chrome extension أو bookmarklet
-- **Search by color:** تضغط على لون، وتطلع لك كل المراجع اللي فيها نفس الباليت
-- **Auto-tagging + Semantic search:** Claude vision يكتب وصف وتاقات، و embeddings في pgvector. تكتب "dark cinematic onboarding with glass" ويطلع لك اللي تبيه
-- **Present Mode** + روابط مشاركة للعميل (unlisted, read-only)
+- **Search by color:** تضغط على لون، وتطلع لك كل المراجع اللي فيها نفس الباليت (`colorBuckets`)
+- **Auto-tagging + Semantic search:** Claude vision يكتب وصف وتاقات، والـ embeddings تنحفظ في Firestore Vector Search (لين 2048 dims) و `findNearest`. تكتب "dark cinematic onboarding with glass" ويطلع لك اللي تبيه
+- **Present Mode** + روابط مشاركة للعميل (`shares/{token}`)
 - Weekly digest: أفضل 10 مراجع الأسبوع
 - OAuth للـ MCP عشان يشتغل كـ connector في claude.ai
 
@@ -459,8 +503,9 @@ ilham/
 1. **Swipe Triage:** الإيجنت يقترح وأنت تختار. 50 مرجع تخلصها في دقيقتين.
 2. **✦ Reasons:** كل مرجع جابه الإيجنت معه سبب واضح، وما فيه صناديق سوداء.
 3. **Taste Loop:** كل ما استخدمته أكثر، صار الإيجنت يفهم ذوقك أكثر.
-4. **Search by color + meaning:** تدور بالمود، مو بس بالكلمات.
-5. **Present Mode:** المشروع يتحول عرض للعميل بضغطة وحدة. هذي أداة كرييتف دايركتر، مو مجرد bookmarks.
+4. **Live Board:** الإيجنت يضيف وأنت تشوف الكروت تطلع قدامك لحظة بلحظة.
+5. **Search by color + meaning:** تدور بالمود، مو بس بالكلمات.
+6. **Present Mode:** المشروع يتحول عرض للعميل بضغطة وحدة. هذي أداة كرييتف دايركتر، مو مجرد bookmarks.
 
 ---
 
@@ -468,17 +513,20 @@ ilham/
 
 | الخطر | الحل |
 |---|---|
-| مواقع تمنع السكرابنق أو الـ hotlink | نخزن البريفيو عندنا + screenshot fallback + الإيجنت يرسل `image_url` |
+| مواقع تمنع السكرابنق أو الـ hotlink | نخزن البريفيو عندنا + screenshot fallback + الإيجنت يرسل `imageUrl` |
 | Instagram و Pinterest يطلبون تسجيل دخول | Share Sheet من الجوال، والإيجنت يرسل الصورة مباشرة |
 | نفس العمل في أكثر من منصة | canonical URL + pHash |
 | الإيجنت يغرقك بمراجع ضعيفة | Inbox + quota + `exclude` + Taste Loop |
-| تكلفة التخزين | WebP بمقاسين (~150KB للعنصر). مساحة Supabase المجانية تكفي آلاف المراجع |
-| مفاتيح API تتسرب | hashed + scopes + `last_used_at` + إلغاء بضغطة |
+| فاتورة Blaze تفاجئك | Budget alerts + كل شي في `us-central1` + بريفيوهات WebP صغيرة + `Cache-Control` طويل |
+| Firestore يحاسب على كل قراءة | Pagination بـ cursor، والغلاف محفوظ في doc المشروع، والـ listeners بس على الصفحة المفتوحة |
+| ما فيه full-text search في Firestore | `searchTokens[]` للبحث البسيط الحين، و semantic search في Phase 4 |
+| Function تعيد المحاولة للأبد | Idempotent + تتجاهل الأحداث القديمة + `ingest: 'failed'` بعد 3 محاولات |
+| مفاتيح API تتسرب | hashed + scopes + `lastUsedAt` + إلغاء بضغطة |
 
 ---
 
 ## 13. الخطوة الجاية
 
-1. ننشئ مشروع Supabase ومشروع Vercel، وأقدر أسويهم مباشرة من هنا.
-2. نبدأ **Phase 0 + Phase 1** على هذا الريبو.
+1. تسوي Firebase project على Blaze (يحتاج بطاقتك، فهذي الخطوة لازم تكون منك)، وتحط budget alert.
+2. أنا أجهز Next.js و Vercel والـ rules والـ Functions والـ Emulators، ونبدأ **Phase 0 + Phase 1** على هذا الريبو.
 3. بعد ما يشتغل الـ MVP، نربط الإيجنت (Phase 2) ونجرب أول run حقيقي على مشروع من مشاريعك.
