@@ -24,6 +24,9 @@ import { firebase } from "../firebase/client";
 
 export type ItemDoc = Item & { id: string };
 
+/** A failed live query. `fixUrl` is Firestore's one-click "create this index" link, when it sends one. */
+export type QueryError = { code: string; fixUrl?: string };
+
 const PAGE = 30;
 const itemsCol = (uid: string) => collection(firebase().db, "users", uid, "items");
 
@@ -33,7 +36,7 @@ const itemsCol = (uid: string) => collection(firebase().db, "users", uid, "items
  */
 export function useItems(uid: string, projectId: string, status: ItemStatus = "kept") {
   const [pageCount, setPageCount] = useState(1);
-  const [state, setState] = useState<{ key: string; items: ItemDoc[] }>();
+  const [state, setState] = useState<{ key: string; items?: ItemDoc[]; error?: QueryError }>();
   const key = `${uid}/${projectId}/${status}/${pageCount}`;
 
   useEffect(() => {
@@ -44,8 +47,15 @@ export function useItems(uid: string, projectId: string, status: ItemStatus = "k
       orderBy("addedAt", "desc"),
       limit(pageCount * PAGE),
     );
-    return onSnapshot(q, (snap) =>
-      setState({ key, items: snap.docs.map((d) => ({ id: d.id, ...(d.data() as Item) })) }),
+    return onSnapshot(
+      q,
+      (snap) => setState({ key, items: snap.docs.map((d) => ({ id: d.id, ...(d.data() as Item) })) }),
+      // Usually a missing or still-building index ("failed-precondition"); the console has its link.
+      (err) => {
+        console.error("items query failed", err);
+        const fixUrl = err.message.match(/https:\/\/console\.firebase\.google\.com\S+/)?.[0];
+        setState({ key, error: { code: err.code, fixUrl } });
+      },
     );
   }, [uid, projectId, status, pageCount, key]);
 
@@ -53,6 +63,7 @@ export function useItems(uid: string, projectId: string, status: ItemStatus = "k
   const items = state?.items;
   return {
     items,
+    error: state?.error,
     hasMore: (items?.length ?? 0) >= pageCount * PAGE,
     loadingMore: state !== undefined && state.key !== key,
     loadMore: () => setPageCount((n) => n + 1),

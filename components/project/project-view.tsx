@@ -5,7 +5,8 @@ import { AnimatePresence } from "motion/react";
 import Link from "next/link";
 import { useParams } from "next/navigation";
 import { useEffect, useMemo, useRef, useState } from "react";
-import { useItems, useResumeIngest, type ItemDoc } from "@/lib/data/items";
+import { useItems, useResumeIngest, type ItemDoc, type QueryError } from "@/lib/data/items";
+import { friendlyError } from "@/lib/errors";
 import { usePasteShortcut } from "@/lib/keys";
 import type { ProjectDoc } from "@/lib/data/projects";
 import { cn, countLabel, PLATFORMS } from "@/lib/ui";
@@ -32,7 +33,7 @@ export function ProjectView() {
 
 function ProjectBoard({ project }: { project: ProjectDoc }) {
   const { uid, openAdd } = useShell();
-  const { items, hasMore, loadMore, loadingMore } = useItems(uid, project.id);
+  const { items, error, hasMore, loadMore, loadingMore } = useItems(uid, project.id);
   useResumeIngest(uid, items);
   const [filter, setFilter] = useState<Platform | "all">("all");
 
@@ -95,7 +96,9 @@ function ProjectBoard({ project }: { project: ProjectDoc }) {
         ) : null}
       </header>
 
-      {items === undefined ? (
+      {error ? (
+        <BoardError error={error} />
+      ) : items === undefined ? (
         <GridSkeleton bare />
       ) : items.length === 0 ? (
         <EmptyBoard onAdd={() => openAdd({ projectId: project.id })} />
@@ -209,6 +212,37 @@ function GridSkeleton({ bare }: { bare?: boolean }) {
           </div>
         ))}
       </Grid>
+    </div>
+  );
+}
+
+/** The items query failed: say why instead of shimmering forever. */
+function BoardError({ error }: { error: QueryError }) {
+  const missingIndex = error.code === "failed-precondition";
+  const reason = missingIndex
+    ? "قاعدة البيانات تحتاج فهرس (index) للمراجع. لو أنشأته، انتظر لين يصير Enabled وحدّث الصفحة."
+    : friendlyError(error);
+  return (
+    <div className="grid min-h-[50dvh] place-items-center px-6 text-center">
+      <div className="max-w-sm">
+        <p className="font-arabic text-xl font-semibold">ما قدرنا نجيب المراجع</p>
+        <p className="mt-2 text-sm leading-6 text-ink-muted">{reason}</p>
+        <div className="mt-5 flex flex-wrap justify-center gap-2">
+          {missingIndex && error.fixUrl ? (
+            <a
+              href={error.fixUrl}
+              target="_blank"
+              rel="noreferrer"
+              className="inline-flex h-10 items-center rounded-full bg-ink px-4 text-sm font-medium text-canvas transition-[background-color,transform] duration-150 ease-out hover:bg-white active:scale-[0.97]"
+            >
+              أنشئ الفهرس بضغطة
+            </a>
+          ) : null}
+          <Button variant="secondary" onClick={() => window.location.reload()}>
+            حدّث الصفحة
+          </Button>
+        </div>
+      </div>
     </div>
   );
 }
