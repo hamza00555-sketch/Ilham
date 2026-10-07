@@ -18,9 +18,11 @@ export async function requireUser(request: Request): Promise<{ uid: string; emai
   const token = request.headers.get("authorization")?.match(/^Bearer (.+)$/)?.[1];
   if (!token) throw new HttpError(401, "unauthenticated");
 
+  // Outside the try: a broken FIREBASE_SERVICE_ACCOUNT is a server error (logged, 500), not a bad token.
+  const { auth } = admin();
   let decoded;
   try {
-    decoded = await admin().auth.verifyIdToken(token);
+    decoded = await auth.verifyIdToken(token);
   } catch {
     throw new HttpError(401, "unauthenticated");
   }
