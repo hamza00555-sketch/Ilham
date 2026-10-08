@@ -48,8 +48,9 @@ export function AgentKeys() {
       <header className="mt-2 max-w-2xl md:mt-0">
         <h1 className="font-arabic text-3xl font-semibold tracking-tight md:text-[40px]">الوكلاء</h1>
         <p className="mt-3 text-[15px] leading-7 text-ink-muted">
-          أعطِ المفتاح لكوديكس أو كلود، ويضيف مراجع لمشاريعك مباشرة بدون متصفح ولا تسجيل دخول. وأنت تقرر: يوقف اللي
-          يضيفه في <span className="text-signal">✦ الوارد</span> لين توافق، أو ينضاف على طول.
+          أعطِ مفتاح لأي وكيل (Codex، Claude، ChatGPT، Grok…): يضيف مراجع لمشاريعك، ويتكلم معك في محادثة أي مرجع. سوّ
+          مفتاح لكل وكيل باسمه عشان تعرف مين رد. وأنت تقرر: يوقف اللي يضيفه في{" "}
+          <span className="text-signal">✦ الوارد</span> لين توافق، أو ينضاف على طول.
         </p>
       </header>
 
@@ -107,7 +108,7 @@ function CreateKeyForm({ onCreated }: { onCreated: (created: { key: string; name
         dir="auto"
         autoComplete="off"
         maxLength={40}
-        placeholder="اسم الوكيل، مثلاً Codex"
+        placeholder="اسم الوكيل، مثلاً Codex أو ChatGPT"
         aria-label="اسم المفتاح"
         value={name}
         onChange={(e) => setName(e.target.value)}
@@ -121,18 +122,28 @@ function CreateKeyForm({ onCreated }: { onCreated: (created: { key: string; name
   );
 }
 
-type Tab = "codex" | "claude" | "prompt" | "api";
+type Tab = "url" | "codex" | "claude" | "mcp" | "prompt" | "api";
 const TABS: { id: Tab; label: string }[] = [
+  { id: "url", label: "رابط مباشر" },
   { id: "codex", label: "Codex" },
   { id: "claude", label: "Claude Code" },
+  { id: "mcp", label: "أي أداة MCP" },
   { id: "prompt", label: "التعليمات" },
   { id: "api", label: "API" },
 ];
 
 function NewKeyPanel({ apiKey, name, onDone }: { apiKey: string; name: string; onDone: () => void }) {
   const origin = useOrigin();
-  const [tab, setTab] = useState<Tab>("codex");
+  const [tab, setTab] = useState<Tab>("url");
   const snippets: Record<Tab, { hint: string; code: string }> = {
+    url: {
+      hint: "للتطبيقات اللي تطلب رابط MCP بس (ChatGPT، تطبيق Claude، Grok…): أضفه كـ connector بدون تسجيل دخول. الرابط فيه مفتاحك، فعامله زي كلمة السر.",
+      code: `${origin}/api/mcp?key=${apiKey}`,
+    },
+    mcp: {
+      hint: "لأي أداة تدعم MCP عن بعد (Cursor، Gemini CLI، Windsurf…): الرابط مع هيدر المفتاح.",
+      code: `URL:     ${origin}/api/mcp\nHeader:  Authorization: Bearer ${apiKey}`,
+    },
     codex: {
       hint: "أضف هذا لملف ‎~/.codex/config.toml‎، وحط المفتاح في متغير البيئة ILHAM_KEY.",
       code: `[mcp_servers.ilham]\nurl = "${origin}/api/mcp"\nbearer_token_env_var = "ILHAM_KEY"\n\n# then, in the terminal you run codex from:\nexport ILHAM_KEY="${apiKey}"`,
@@ -143,7 +154,7 @@ function NewKeyPanel({ apiKey, name, onDone }: { apiKey: string; name: string; o
     },
     prompt: {
       hint: "الصقها للوكيل مع اسم المشروع. يقرأ الـ brief وذوقك قبل ما يدوّر، ويجيب معلومات صاحب كل عمل.",
-      code: `You are Ilham's curator agent. Use the "ilham" MCP tools.\n1. get_project("<slug>") — read the brief and knownUrls.\n2. get_taste("<slug>") — learn what I keep vs. discard.\n3. start_run("<slug>", "<your search plan>").\n4. Find <N> pieces that match the brief's mood and keywords. Skip anything in "exclude" or knownUrls.\n5. Prefer the original creator's page — no reposts, no aggregators.\n6. For each: url, direct high-res imageUrl, title, 3–5 namespaced tags, one-sentence reason tied to the brief.\n7. Credits for each: creator, creatorUrl (their portfolio), publishedAt, tools (software used) and process (how it was made, 1–3 sentences from the creator's page or a making-of). Leave out what you can't verify.\n8. add_inspiration in ONE batch, then finish_run with a 2-line summary.\n9. Anything else worth telling me about a piece → add_note, in Arabic.\n10. Items with lastNoteBy "user": read them with get_item and answer with add_note.`,
+      code: `You are Ilham's curator agent. Use the "ilham" MCP tools.\n1. get_project("<slug>") — read the brief and knownUrls.\n2. get_taste("<slug>") — learn what I keep vs. discard.\n3. start_run("<slug>", "<your search plan>").\n4. Find <N> pieces that match the brief's mood and keywords. Skip anything in "exclude" or knownUrls.\n5. Prefer the original creator's page — no reposts, no aggregators.\n6. For each: url, direct high-res imageUrl, title, 3–5 namespaced tags, one-sentence reason tied to the brief.\n7. Credits for each: creator, creatorUrl (their portfolio), publishedAt, tools (software used) and process (how it was made, 1–3 sentences from the creator's page or a making-of). Leave out what you can't verify.\n8. add_inspiration in ONE batch, then finish_run with a 2-line summary.\n9. Anything else worth telling me about a piece → add_note, in Arabic.\n10. Notes waiting for you: list_waiting_threads, then answer each with add_note.\n\nWhen I share a reference link (…/p/<project>?ref=<id>): open_thread with it, answer my latest note with add_note, then wait_for_reply and keep answering in that thread until I say we're done.`,
     },
     api: {
       hint: "لأي أداة تقدر تسوي طلبات HTTP (n8n، Make، سكربت).",

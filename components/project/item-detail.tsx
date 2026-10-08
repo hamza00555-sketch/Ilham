@@ -1,6 +1,6 @@
 "use client";
 
-import { ArrowUp, ArrowUpRight, Check, ChevronLeft, ChevronRight, Copy, Link2, RotateCw, Trash2, X } from "lucide-react";
+import { ArrowUp, ArrowUpRight, Check, ChevronLeft, ChevronRight, Copy, Link2, RotateCw, Trash2, UserPlus, X } from "lucide-react";
 import { Dialog as D } from "radix-ui";
 import { useParams, useSearchParams } from "next/navigation";
 import {
@@ -27,6 +27,7 @@ import { releaseMotion, useCanHover } from "@/lib/motion";
 import { cn, formatPublished, PLATFORMS, relativeTime } from "@/lib/ui";
 import { displayHost } from "@/shared/normalize";
 import type { ItemNote } from "@/shared/types";
+import { threadInvite } from "@/shared/threads";
 import { playerSource } from "@/shared/video";
 import { useShell } from "../shell/shell-context";
 import { Avatar, Spark } from "../ui/brand";
@@ -489,7 +490,7 @@ function ResearchAsk({ item }: { item: ItemDoc }) {
         `Find who made it, their portfolio page, when it was published, the software they used and how it was made — from the creator's own pages or a reliable making-of.\n` +
         `Save it with update_item, then tell me anything interesting about it with add_note, in Arabic.`,
     );
-    toast("انسخ الطلب. الصقه لكوديكس أو كلود");
+    toast("نُسخ الطلب", { description: "الصقه لأي وكيل مربوط بإلهام." });
   };
 
   return (
@@ -548,14 +549,17 @@ function Notes({ item, following }: { item: ItemDoc; following: boolean }) {
 
   return (
     <section className="mt-8">
-      <h3 className="flex items-baseline gap-2 text-xs font-medium text-ink-faint">
-        الملاحظات
-        {notes.length ? <span className="tabular-nums">{notes.length}</span> : null}
-      </h3>
+      <div className="flex items-center gap-2">
+        <h3 className="flex items-baseline gap-2 text-xs font-medium text-ink-faint">
+          الملاحظات
+          {notes.length ? <span className="tabular-nums">{notes.length}</span> : null}
+        </h3>
+        <InviteAgent item={item} />
+      </div>
       {notes.length ? (
         <ol className="mt-4 space-y-5" aria-live="polite">
           {notes.map((note) => (
-            <NoteRow key={note.id} itemId={item.id} note={note} />
+            <NoteRow key={note.id} item={item} note={note} />
           ))}
           {thinking ? (
             <li className="flex gap-3">
@@ -590,7 +594,8 @@ function Notes({ item, following }: { item: ItemDoc; following: boolean }) {
         </ol>
       ) : (
         <p className="mt-2 text-sm leading-6 text-ink-faint">
-          اسأل عن هذا العمل أو اكتب ملاحظتك. Claude يرد عليك هنا، والمحادثة تبقى مع المرجع.
+          اكتب ملاحظتك أو اسأل عن هذا العمل. ادعُ أي وكيل (Codex، ChatGPT، Claude، Grok…) ويرد عليك هنا، والمحادثة
+          تبقى مع المرجع.
         </p>
       )}
       <div ref={end} />
@@ -598,13 +603,32 @@ function Notes({ item, following }: { item: ItemDoc; following: boolean }) {
   );
 }
 
-function NoteRow({ itemId, note }: { itemId: string; note: ItemNote }) {
+/** Copies an invitation any connected agent (Codex, Claude, ChatGPT, Grok…) can follow into this thread. */
+function InviteAgent({ item }: { item: ItemDoc }) {
+  const copy = async () => {
+    const link = `${window.location.origin}${window.location.pathname}?ref=${item.id}`;
+    await navigator.clipboard.writeText(threadInvite(link));
+    toast("نُسخت الدعوة", { description: "الصقها لأي وكيل مربوط بإلهام، ويجي يكلمك هنا." });
+  };
+  return (
+    <button
+      type="button"
+      onClick={() => void copy()}
+      className="ms-auto -me-2 inline-flex min-h-9 items-center gap-1.5 rounded-full px-2.5 text-xs font-medium text-ink-muted transition-colors hover:bg-raised hover:text-ink max-md:min-h-11"
+    >
+      <UserPlus className="size-3.5" />
+      ادعُ وكيل
+    </button>
+  );
+}
+
+function NoteRow({ item, note }: { item: ItemDoc; note: ItemNote }) {
   const { uid } = useShell();
   const { user } = useAuth();
   const agent = note.by === "agent";
   const remove = async () => {
     try {
-      await removeNote(uid, itemId, note);
+      await removeNote(uid, item, note);
     } catch (err) {
       toast.error("ما قدرنا نحذفها", { description: friendlyError(err) });
     }
@@ -709,31 +733,29 @@ function NoteComposer({ item, onSent }: { item: ItemDoc; onSent: () => void }) {
     }
   };
 
-  const toggle = () => {
-    if (configured === false) {
-      toast("ردود Claude مو مفعّلة", { description: "تحتاج مفتاح ANTHROPIC_API_KEY في إعدادات Vercel. التفاصيل في صفحة «الوكلاء»." });
-      return;
-    }
-    setAsk(!askPreference);
-  };
-
   return (
     <form
       onSubmit={(e) => void submit(e)}
-      className="sticky bottom-0 z-10 mt-auto border-t border-line bg-surface px-3 pt-2 pb-[max(0.75rem,env(safe-area-inset-bottom))] md:static md:col-start-2 md:row-start-3 md:border-s md:px-4 md:pb-4"
+      className={cn(
+        "sticky bottom-0 z-10 mt-auto border-t border-line bg-surface px-3 pb-[max(0.75rem,env(safe-area-inset-bottom))] md:static md:col-start-2 md:row-start-3 md:border-s md:px-4 md:pb-4",
+        configured ? "pt-2" : "pt-3 md:pt-4",
+      )}
     >
-      <button
-        type="button"
-        onClick={toggle}
-        aria-pressed={ask}
-        className={cn(
-          "-ms-1 mb-1.5 inline-flex min-h-9 items-center gap-1.5 rounded-full px-2.5 text-xs font-medium transition-colors hover:bg-raised",
-          ask ? "text-ink" : "text-ink-faint",
-        )}
-      >
-        <Spark className={cn("size-3", ask ? "text-signal" : "text-ink-faint")} />
-        {configured === false ? "ردود Claude مقفلة" : ask ? "Claude يرد" : "ملاحظة لك بس"}
-      </button>
+      {/* Only when Claude's automatic replies are on; otherwise notes wait for whichever agent you invite. */}
+      {configured ? (
+        <button
+          type="button"
+          onClick={() => setAsk(!askPreference)}
+          aria-pressed={ask}
+          className={cn(
+            "-ms-1 mb-1.5 inline-flex min-h-9 items-center gap-1.5 rounded-full px-2.5 text-xs font-medium transition-colors hover:bg-raised",
+            ask ? "text-ink" : "text-ink-faint",
+          )}
+        >
+          <Spark className={cn("size-3", ask ? "text-signal" : "text-ink-faint")} />
+          {ask ? "Claude يرد" : "ملاحظة لك بس"}
+        </button>
+      ) : null}
       <div className="flex items-end gap-2 rounded-2xl border border-line-strong bg-canvas p-1.5 transition-colors focus-within:border-ink">
         <textarea
           ref={field}

@@ -8,6 +8,7 @@ import {
   finishRunInput,
   startRunInput,
   updateItemInput,
+  waitInput,
 } from "@/server/agent/schemas";
 import {
   addItems,
@@ -18,13 +19,17 @@ import {
   getProject,
   getTaste,
   listProjects,
+  listWaitingThreads,
+  openThread,
   startRun,
   updateItem,
+  waitForReply,
 } from "@/server/agent/service";
 import { HttpError } from "@/server/auth";
 
 // Same as REST v1, as MCP tools. Connect with the URL of this route and
-// `Authorization: Bearer ilham_sk_…` (Settings → الوكلاء).
+// `Authorization: Bearer ilham_sk_…` (Settings → الوكلاء), or, for apps that only take a URL
+// (ChatGPT, Claude, Grok connectors…), the URL with `?key=ilham_sk_…`.
 export const maxDuration = 300;
 
 const slug = z.string().min(1).max(64).describe("Project slug, from list_projects.");
@@ -139,6 +144,43 @@ const handler = createMcpHandler(
     );
 
     server.registerTool(
+      "open_thread",
+      {
+        title: "Open thread",
+        description:
+          "Opens the conversation about one reference from its Ilham link (…/p/<project>?ref=<id>), the link the user gives you to join it. Returns the work, its credits and every note. Answer with add_note, then call wait_for_reply to stay in the conversation.",
+        inputSchema: z.object({ link: z.string().min(10).max(500).describe("The reference link the user shared.") }),
+        annotations: { readOnlyHint: true },
+      },
+      async ({ link }, ctx) => run(() => openThread(uidOf(ctx), originOf(ctx), link)),
+    );
+
+    server.registerTool(
+      "wait_for_reply",
+      {
+        title: "Wait for reply",
+        description:
+          "Waits for the user's next note on a reference thread and returns it (status \"reply\"), or status \"timeout\" if they haven't written yet; then call it again to keep listening. Use after each add_note to hold a live conversation in the thread.",
+        inputSchema: waitInput.extend({ project: slug, id: itemId }),
+        annotations: { readOnlyHint: true },
+      },
+      async ({ project, id, afterNoteId, timeoutSeconds }, ctx) =>
+        run(() => waitForReply(uidOf(ctx), project, id, afterNoteId, timeoutSeconds)),
+    );
+
+    server.registerTool(
+      "list_waiting_threads",
+      {
+        title: "List waiting threads",
+        description:
+          "References whose latest note is the user's and still unanswered, across all projects, newest first, with their links. Use it when the user asks you to answer their notes.",
+        inputSchema: z.object({}),
+        annotations: { readOnlyHint: true },
+      },
+      async (_args, ctx) => run(() => listWaitingThreads(uidOf(ctx), originOf(ctx))),
+    );
+
+    server.registerTool(
       "start_run",
       {
         title: "Start run",
@@ -164,7 +206,8 @@ const handler = createMcpHandler(
 const authed = withMcpAuth(
   handler,
   async (request, token) => {
-    const owner = await resolveKey(token);
+    // Apps that only take a server URL send the key in it (?key=…) instead of a header.
+    const owner = await resolveKey(token ?? new URL(request.url).searchParams.get("key"));
     if (!owner) return undefined;
     return {
       token: token!,

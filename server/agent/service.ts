@@ -4,6 +4,7 @@ import { after } from "next/server";
 import { buildItem, cleanTags, creditFields, isWebUrl, makeNote, MAX_NOTES, type CreditsInput } from "@/shared/items";
 import { searchTokens } from "@/shared/normalize";
 import { slugify } from "@/shared/slug";
+import { parseThreadLink } from "@/shared/threads";
 import { reviewsAgentPicks, type AgentSettings, type Item, type ItemNote, type ItemStatus, type Project } from "@/shared/types";
 import { HttpError } from "../auth";
 import { admin } from "../firebase-admin";
@@ -319,7 +320,11 @@ export async function addNote(uid: string, slug: string, id: string, text: strin
   if (!note) throw new HttpError(400, "empty-note");
   await admin().db.runTransaction(async (tx) => {
     const notes = ((await tx.get(ref)).get("notes") as ItemNote[] | undefined) ?? [];
-    tx.update(ref, { notes: [...notes, note].slice(-MAX_NOTES), updatedAt: FieldValue.serverTimestamp() });
+    tx.update(ref, {
+      notes: [...notes, note].slice(-MAX_NOTES),
+      awaitingReply: false,
+      updatedAt: FieldValue.serverTimestamp(),
+    });
   });
   return { id, note: { by: note.by, name: note.name, text: note.text, at: note.at } };
 }
@@ -349,4 +354,68 @@ export async function finishRun(uid: string, runId: string, input: { summary?: s
     finishedAt: FieldValue.serverTimestamp(),
   });
   return { runId, status: input.status ?? "done" };
+}
+
+/** A thread from its sheet link (what the user copies with "ادعُ وكيل"). */
+export async function openThread(uid: string, origin: string, link: string) {
+  const target = parseThreadLink(link);
+  if (!target) throw new HttpError(400, "not-a-reference-link");
+  return { project: target.project, ...(await getItem(uid, origin, target.project, target.id)) };
+}
+
+const WAIT_STEP_MS = 3_000;
+export const MAX_WAIT_SECONDS = 240;
+
+/**
+ * Waits for the user's next note on a thread, so an agent can stay in the conversation. Returns
+ * the user's notes written after `afterNoteId` (default: the thread's latest note), or "timeout"
+ * so the agent calls again. Keep timeouts under your client's tool timeout (60 s in Codex by default).
+ */
+export async function waitForReply(uid: string, slug: string, id: string, afterNoteId?: string, timeoutSeconds = 50) {
+  const { ref, item } = await itemInProject(uid, slug, id);
+  const notes = item.notes ?? [];
+  const after = (afterNoteId && notes.find((n) => n.id === afterNoteId)?.at) ?? notes.at(-1)?.at ?? new Date().toISOString();
+  const deadline = Date.now() + Math.min(Math.max(timeoutSeconds, 5), MAX_WAIT_SECONDS) * 1000;
+
+  for (;;) {
+    const current = ((await ref.get()).get("notes") as ItemNote[] | undefined) ?? [];
+    const fresh = current.filter((n) => n.by === "user" && n.at > after);
+    if (fresh.length) {
+      return {
+        status: "reply" as const,
+        notes: fresh.map(({ id: noteId, text, at }) => ({ id: noteId, text, at })),
+        lastNoteId: current.at(-1)?.id ?? null,
+      };
+    }
+    if (Date.now() + WAIT_STEP_MS > deadline) {
+      return { status: "timeout" as const, hint: "No new note yet. Call wait_for_reply again to keep listening." };
+    }
+    await new Promise((resolve) => setTimeout(resolve, WAIT_STEP_MS));
+  }
+}
+
+/** Threads where the user's latest note has no answer yet, newest first, across all projects. */
+export async function listWaitingThreads(uid: string, origin: string) {
+  const [items, projects] = await Promise.all([
+    col(uid, "items").where("awaitingReply", "==", true).limit(50).get(),
+    col(uid, "projects").get(),
+  ]);
+  const slugs = new Map(projects.docs.map((d) => [d.id, (d.data() as Project).slug]));
+  return items.docs
+    .map((d) => {
+      const item = d.data() as Item;
+      const slug = slugs.get(item.projectId);
+      const last = item.notes?.at(-1);
+      if (!slug || last?.by !== "user") return null;
+      return {
+        project: slug,
+        id: d.id,
+        title: item.title,
+        url: item.sourceUrl,
+        lastNote: { text: last.text, at: last.at },
+        link: `${origin}/p/${encodeURIComponent(slug)}?ref=${d.id}`,
+      };
+    })
+    .filter((t): t is NonNullable<typeof t> => t !== null)
+    .sort((a, b) => b.lastNote.at.localeCompare(a.lastNote.at));
 }

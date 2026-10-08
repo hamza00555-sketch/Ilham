@@ -104,7 +104,7 @@ export async function replyToNotes(uid: string, itemId: string): Promise<"replie
     if (!note) throw new Error("empty-reply");
     await db.runTransaction(async (tx) => {
       const notes = ((await tx.get(ref)).get("notes") as ItemNote[] | undefined) ?? [];
-      tx.update(ref, { notes: [...notes, note].slice(-MAX_NOTES), agentReply: null });
+      tx.update(ref, { notes: [...notes, note].slice(-MAX_NOTES), agentReply: null, awaitingReply: false });
     });
     return "replied";
   } catch (err) {

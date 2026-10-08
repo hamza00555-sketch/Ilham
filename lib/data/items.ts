@@ -94,7 +94,7 @@ export async function addUserNote(uid: string, item: ItemDoc, text: string) {
   const note = makeNote("user", text);
   if (!note) return;
   if ((item.notes?.length ?? 0) >= MAX_NOTES) throw Object.assign(new Error("too-many-notes"), { code: "too-many-notes" });
-  await updateDoc(doc(itemsCol(uid), item.id), { notes: arrayUnion(note), ...touch });
+  await updateDoc(doc(itemsCol(uid), item.id), { notes: arrayUnion(note), awaitingReply: true, ...touch });
 }
 
 /** Asks the built-in agent (Claude) to answer the latest note on a reference. */
@@ -120,8 +120,13 @@ export function useAgentChatConfigured(): boolean | undefined {
   return configured;
 }
 
-export async function removeNote(uid: string, id: string, note: ItemNote) {
-  await updateDoc(doc(itemsCol(uid), id), { notes: arrayRemove(note), ...touch });
+export async function removeNote(uid: string, item: ItemDoc, note: ItemNote) {
+  const rest = (item.notes ?? []).filter((n) => n.id !== note.id);
+  await updateDoc(doc(itemsCol(uid), item.id), {
+    notes: arrayRemove(note),
+    awaitingReply: rest.at(-1)?.by === "user",
+    ...touch,
+  });
 }
 
 export type AddResult = { status: "added" | "duplicate"; id: string };

@@ -60,6 +60,21 @@ export const addNoteInput = z.object({
   text: z.string().min(1).max(2000).describe("Your note to the user about this reference. Plain text, their language."),
 });
 
+export const waitInput = z.object({
+  afterNoteId: z
+    .string()
+    .max(40)
+    .optional()
+    .describe("Return the user's notes written after this note (default: the thread's latest note)."),
+  timeoutSeconds: z
+    .number()
+    .int()
+    .min(5)
+    .max(240)
+    .optional()
+    .describe("How long to wait, in seconds (default 50). Keep it under your client's tool timeout."),
+});
+
 export const startRunInput = z.object({
   project: z.string().min(1).max(64).describe("Project slug."),
   query: z.string().min(1).max(1000).describe("Your search plan for this run."),

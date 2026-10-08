@@ -314,10 +314,13 @@ curl -X POST https://ilham.vercel.app/api/v1/projects/vr-onboarding/items \
 | `get_item(project, id)` | مرجع كامل: معلوماته ووصفه والملاحظات وردودك |
 | `update_item(project, id, …)` | احتفظ / ارمِ / وسوم، أو يصحح معلومات المرجع بعد ما يبحث |
 | `add_note(project, id, text)` | يترك لك ملاحظة على مرجع |
+| `open_thread(link)` | يفتح محادثة مرجع من رابطه (`…/p/<slug>?ref=<id>`) |
+| `wait_for_reply(project, id, afterNoteId?, timeoutSeconds?)` | ينتظر ملاحظتك الجاية (long-poll لين 240 ثانية، الافتراضي 50) |
+| `list_waiting_threads()` | المراجع اللي كتبت فيها وتنتظر رد |
 | `get_taste(project)` | ذوقك عشان يتعلم منه |
 | `start_run(project, query)` / `finish_run(runId, summary)` | سجل الجلسات |
 
-مبني بـ `mcp-handler` 2 (MCP SDK v2، stateless). Tools: `list_projects` · `get_project` · `get_taste` · `create_project` · `add_inspiration` · `get_item` · `update_item` · `add_note` · `start_run` · `finish_run`. الربط (الأوامر الجاهزة بمفتاحك في `/settings`):
+مبني بـ `mcp-handler` 2 (MCP SDK v2، stateless). Tools: `list_projects` · `get_project` · `get_taste` · `create_project` · `add_inspiration` · `get_item` · `update_item` · `add_note` · `open_thread` · `wait_for_reply` · `list_waiting_threads` · `start_run` · `finish_run`. الربط (الأوامر الجاهزة بمفتاحك في `/settings`):
 
 ```bash
 # Claude Code
@@ -332,7 +335,7 @@ url = "https://ilham-psi-lake.vercel.app/api/mcp"
 bearer_token_env_var = "ILHAM_KEY"
 ```
 
-(OAuth للـ connectors في claude.ai نضيفه في Phase 4.)
+التطبيقات اللي تقبل رابط بس (connectors في ChatGPT و Claude و Grok): `https://<الدومين>/api/mcp?key=ilham_sk_…` (تبويب «رابط مباشر» في `/settings`). الرابط فيه المفتاح، فيعامَل زي كلمة السر. (OAuth للـ connectors نضيفه في Phase 4.)
 
 ### Project Brief — اللي يخلي الإيجنت ذكي
 
@@ -481,6 +484,7 @@ ilham/
 - ✅ REST v1 + zod + batch لين 50 + dedupe (حتى المرفوض ما يرجع)، والمعالجة تكمل بعد الرد بـ `after()`
 - ✅ MCP server (`mcp-handler` 2، MCP SDK v2): 10 tools
 - ✅ محادثة كل مرجع: Claude يرد على ملاحظاتك داخل المرجع نفسه (`/api/notes/reply`، `server/agent/reply.ts`)
+- ✅ المحادثة لأي وكيل: زر «ادعُ وكيل» ينسخ دعوة فيها رابط المرجع، والوكيل (Codex، ChatGPT، Claude، Grok…) يفتحها بـ `open_thread`، يرد بـ `add_note`، وينتظرك بـ `wait_for_reply`. `awaitingReply` على المرجع يخلي `list_waiting_threads` يلقى اللي ينتظر رد
 - ✅ بنتو داخل المشروع (`lib/bento.ts`): المقاسات من شكل كل عمل، بدون فراغات، وآخر صف يقفل
 - ✅ صفحة المرجع (`?ref=`): الفيديو، صاحب العمل وملف أعماله، التاريخ، وصفه، كيف انسوى، البرامج، والملاحظات بينك وبين الوكيل (`get_item` / `add_note`)
 - ✅ Inbox داخل المشروع: احتفظ / ارمِ (مع تراجع) / احتفظ بالكل، والسبب تحت كل كرت
