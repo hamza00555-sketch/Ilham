@@ -86,6 +86,8 @@ export interface Item {
   /** How it was made: process, techniques, making-of. Usually an agent's research. */
   process?: string | null;
   notes?: ItemNote[];
+  /** The built-in agent answering the latest note: "thinking" while it works, "failed" if it couldn't. */
+  agentReply?: { status: "thinking" | "failed"; at: unknown; error: string | null } | null;
   // Timestamps are Firestore Timestamps at runtime; typed loosely so both SDKs fit.
   addedAt: unknown;
   updatedAt: unknown;

@@ -1,12 +1,27 @@
 "use client";
 
-import { ArrowUp, ArrowUpRight, Check, ChevronLeft, ChevronRight, Copy, Link2, Trash2, X } from "lucide-react";
+import { ArrowUp, ArrowUpRight, Check, ChevronLeft, ChevronRight, Copy, Link2, RotateCw, Trash2, X } from "lucide-react";
 import { Dialog as D } from "radix-ui";
 import { useParams, useSearchParams } from "next/navigation";
-import { useEffect, useRef, useState, type FormEvent, type KeyboardEvent as ReactKeyboardEvent } from "react";
+import {
+  useEffect,
+  useRef,
+  useState,
+  useSyncExternalStore,
+  type FormEvent,
+  type KeyboardEvent as ReactKeyboardEvent,
+} from "react";
 import { toast } from "sonner";
 import { useAuth } from "@/lib/auth";
-import { addUserNote, removeNote, setItemStatus, useItem, type ItemDoc } from "@/lib/data/items";
+import {
+  addUserNote,
+  askAgent,
+  removeNote,
+  setItemStatus,
+  useAgentChatConfigured,
+  useItem,
+  type ItemDoc,
+} from "@/lib/data/items";
 import { friendlyError } from "@/lib/errors";
 import { releaseMotion, useCanHover } from "@/lib/motion";
 import { cn, formatPublished, PLATFORMS, relativeTime } from "@/lib/ui";
@@ -89,6 +104,8 @@ function DetailBody({ id, ids }: { id: string; ids: string[] }) {
   const { uid } = useShell();
   const item = useItem(uid, id);
   const [previewOpen, setPreviewOpen] = useState(false);
+  // After you send a note, the thread keeps its end in view while the reply arrives.
+  const [following, setFollowing] = useState(false);
   const index = ids.indexOf(id);
   const prev = index > 0 ? ids[index - 1] : null;
   const next = index >= 0 && index < ids.length - 1 ? ids[index + 1] : null;
@@ -146,8 +163,12 @@ function DetailBody({ id, ids }: { id: string; ids: string[] }) {
       {item ? (
         <>
           <Media item={item} />
-          <Story item={item} onDecided={() => (next ? switchRef(next) : prev ? switchRef(prev) : closeRef())} />
-          <NoteComposer item={item} />
+          <Story
+            item={item}
+            following={following}
+            onDecided={() => (next ? switchRef(next) : prev ? switchRef(prev) : closeRef())}
+          />
+          <NoteComposer item={item} onSent={() => setFollowing(true)} />
           <PreviewDialog item={item} open={previewOpen} onOpenChange={setPreviewOpen} />
         </>
       ) : (
@@ -232,7 +253,7 @@ function Media({ item }: { item: ItemDoc }) {
   );
 }
 
-function Story({ item, onDecided }: { item: ItemDoc; onDecided: () => void }) {
+function Story({ item, following, onDecided }: { item: ItemDoc; following: boolean; onDecided: () => void }) {
   const platform = PLATFORMS[item.platform] ?? PLATFORMS.web;
   const host = displayHost(item.sourceUrl);
   const sourceName = item.platform === "web" ? host : platform.label;
@@ -319,7 +340,7 @@ function Story({ item, onDecided }: { item: ItemDoc; onDecided: () => void }) {
       ) : null}
 
       <ResearchAsk item={item} />
-      <Notes item={item} />
+      <Notes item={item} following={following} />
     </div>
   );
 }
@@ -484,8 +505,47 @@ function ResearchAsk({ item }: { item: ItemDoc }) {
   );
 }
 
-function Notes({ item }: { item: ItemDoc }) {
+/** A reply still "thinking" after this long was abandoned; the retry takes over. */
+const REPLY_STALE_MS = 3 * 60_000;
+
+// A coarse clock for render: time moves in 15-second steps, which is all staleness needs.
+let clock = Date.now();
+const subscribeClock = (onChange: () => void) => {
+  // Catch up at once: the module may have loaded long before this thread opened.
+  queueMicrotask(() => {
+    clock = Date.now();
+    onChange();
+  });
+  const timer = setInterval(() => {
+    clock = Date.now();
+    onChange();
+  }, 15_000);
+  return () => clearInterval(timer);
+};
+const useClock = () => useSyncExternalStore(subscribeClock, () => clock, () => clock);
+
+function Notes({ item, following }: { item: ItemDoc; following: boolean }) {
   const notes = item.notes ?? [];
+  const end = useRef<HTMLDivElement>(null);
+  const now = useClock();
+  const reply = item.agentReply;
+  const startedAt = (reply?.at as { toMillis?: () => number } | null)?.toMillis?.();
+  // Pending server timestamps read as null: the request is seconds old.
+  const thinking = reply?.status === "thinking" && (startedAt === undefined || now - startedAt < REPLY_STALE_MS);
+  const failed = reply?.status === "failed" || (reply?.status === "thinking" && !thinking);
+
+  useEffect(() => {
+    if (following) end.current?.scrollIntoView({ block: "nearest", behavior: "smooth" });
+  }, [following, notes.length, thinking, failed]);
+
+  const retry = async () => {
+    try {
+      await askAgent(item.id);
+    } catch (err) {
+      toast.error("ما قدر Claude يرد", { description: friendlyError(err) });
+    }
+  };
+
   return (
     <section className="mt-8">
       <h3 className="flex items-baseline gap-2 text-xs font-medium text-ink-faint">
@@ -493,14 +553,47 @@ function Notes({ item }: { item: ItemDoc }) {
         {notes.length ? <span className="tabular-nums">{notes.length}</span> : null}
       </h3>
       {notes.length ? (
-        <ol className="mt-4 space-y-5">
+        <ol className="mt-4 space-y-5" aria-live="polite">
           {notes.map((note) => (
             <NoteRow key={note.id} itemId={item.id} note={note} />
           ))}
+          {thinking ? (
+            <li className="flex gap-3">
+              <span className="grid size-7 shrink-0 place-items-center rounded-full bg-raised text-signal">
+                <Spark className="size-3" />
+              </span>
+              <div className="min-w-0 flex-1">
+                <p className="text-xs font-medium text-ink">Claude</p>
+                <p className="mt-2 flex items-center gap-1" role="status" aria-label="Claude يكتب">
+                  {[0, 150, 300].map((delay) => (
+                    <span
+                      key={delay}
+                      className="size-1.5 rounded-full bg-ink-faint motion-safe:animate-pulse"
+                      style={{ animationDelay: `${delay}ms` }}
+                    />
+                  ))}
+                </p>
+              </div>
+            </li>
+          ) : failed && notes.at(-1)?.by === "user" ? (
+            <li className="flex items-center gap-3">
+              <span className="grid size-7 shrink-0 place-items-center rounded-full bg-raised text-ink-faint">
+                <Spark className="size-3" />
+              </span>
+              <p className="flex-1 text-sm text-ink-muted">ما قدر Claude يرد هالمرة.</p>
+              <Button variant="secondary" size="sm" className="max-md:h-11" onClick={() => void retry()}>
+                <RotateCw className="size-3.5" />
+                أعد المحاولة
+              </Button>
+            </li>
+          ) : null}
         </ol>
       ) : (
-        <p className="mt-2 text-sm leading-6 text-ink-faint">اكتب ملاحظتك على هذا المرجع. الوكيل يقراها ويقدر يرد عليك هنا.</p>
+        <p className="mt-2 text-sm leading-6 text-ink-faint">
+          اسأل عن هذا العمل أو اكتب ملاحظتك. Claude يرد عليك هنا، والمحادثة تبقى مع المرجع.
+        </p>
       )}
+      <div ref={end} />
     </section>
   );
 }
@@ -552,9 +645,34 @@ function NoteRow({ itemId, note }: { itemId: string; note: ItemNote }) {
   );
 }
 
-function NoteComposer({ item }: { item: ItemDoc }) {
+const ASK_KEY = "ilham.askAgent";
+
+/** Whether your notes go to Claude for a reply. Remembered on this device; on by default. */
+function useAskAgent(): [boolean, (value: boolean) => void] {
+  const [ask, setAsk] = useState(() => {
+    try {
+      return localStorage.getItem(ASK_KEY) !== "off";
+    } catch {
+      return true;
+    }
+  });
+  const update = (value: boolean) => {
+    setAsk(value);
+    try {
+      localStorage.setItem(ASK_KEY, value ? "on" : "off");
+    } catch {
+      // Private mode: the choice lasts for this visit.
+    }
+  };
+  return [ask, update];
+}
+
+function NoteComposer({ item, onSent }: { item: ItemDoc; onSent: () => void }) {
   const { uid } = useShell();
   const canHover = useCanHover();
+  const configured = useAgentChatConfigured();
+  const [askPreference, setAsk] = useAskAgent();
+  const ask = askPreference && configured === true;
   const [text, setText] = useState("");
   const [busy, setBusy] = useState(false);
   const field = useRef<HTMLTextAreaElement>(null);
@@ -566,7 +684,13 @@ function NoteComposer({ item }: { item: ItemDoc }) {
     try {
       await addUserNote(uid, item, text);
       setText("");
+      onSent();
       field.current?.focus();
+      if (ask) {
+        await askAgent(item.id).catch((err) =>
+          toast.error("ما قدر Claude يرد", { description: friendlyError(err) }),
+        );
+      }
     } catch (err) {
       const code = (err as { code?: string }).code;
       toast.error("ما قدرنا نحفظ الملاحظة", {
@@ -585,11 +709,31 @@ function NoteComposer({ item }: { item: ItemDoc }) {
     }
   };
 
+  const toggle = () => {
+    if (configured === false) {
+      toast("ردود Claude مو مفعّلة", { description: "تحتاج مفتاح ANTHROPIC_API_KEY في إعدادات Vercel. التفاصيل في صفحة «الوكلاء»." });
+      return;
+    }
+    setAsk(!askPreference);
+  };
+
   return (
     <form
       onSubmit={(e) => void submit(e)}
-      className="sticky bottom-0 z-10 mt-auto border-t border-line bg-surface px-3 pt-3 pb-[max(0.75rem,env(safe-area-inset-bottom))] md:static md:col-start-2 md:row-start-3 md:border-s md:px-4 md:pb-4"
+      className="sticky bottom-0 z-10 mt-auto border-t border-line bg-surface px-3 pt-2 pb-[max(0.75rem,env(safe-area-inset-bottom))] md:static md:col-start-2 md:row-start-3 md:border-s md:px-4 md:pb-4"
     >
+      <button
+        type="button"
+        onClick={toggle}
+        aria-pressed={ask}
+        className={cn(
+          "-ms-1 mb-1.5 inline-flex min-h-9 items-center gap-1.5 rounded-full px-2.5 text-xs font-medium transition-colors hover:bg-raised",
+          ask ? "text-ink" : "text-ink-faint",
+        )}
+      >
+        <Spark className={cn("size-3", ask ? "text-signal" : "text-ink-faint")} />
+        {configured === false ? "ردود Claude مقفلة" : ask ? "Claude يرد" : "ملاحظة لك بس"}
+      </button>
       <div className="flex items-end gap-2 rounded-2xl border border-line-strong bg-canvas p-1.5 transition-colors focus-within:border-ink">
         <textarea
           ref={field}
@@ -600,14 +744,14 @@ function NoteComposer({ item }: { item: ItemDoc }) {
           value={text}
           onChange={(e) => setText(e.target.value)}
           onKeyDown={onKeyDown}
-          placeholder="اكتب ملاحظة…"
+          placeholder={ask ? "اسأل Claude عن هذا العمل…" : "اكتب ملاحظة…"}
           aria-label="ملاحظة على المرجع"
           className="field-sizing-content max-h-36 min-h-9 flex-1 resize-none bg-transparent px-2.5 py-2 text-[15px] leading-6 text-ink outline-none placeholder:text-ink-faint focus-visible:outline-none md:text-sm"
         />
         <button
           type="submit"
           disabled={!text.trim() || busy}
-          aria-label="احفظ الملاحظة"
+          aria-label={ask ? "أرسل لـ Claude" : "احفظ الملاحظة"}
           className="grid size-11 shrink-0 place-items-center rounded-full bg-ink text-canvas transition-[opacity,transform] duration-150 ease-out active:scale-[0.94] disabled:opacity-25 md:size-9"
         >
           <ArrowUp className="size-4" />

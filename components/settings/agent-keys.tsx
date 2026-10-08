@@ -10,6 +10,7 @@ import { cn, relativeTime } from "@/lib/ui";
 import { Spark } from "../ui/brand";
 import { Button } from "../ui/button";
 import { Dialog, inputClass } from "../ui/dialog";
+import { AgentChatSetting } from "./agent-chat";
 import { AgentReviewSetting } from "./agent-review";
 
 const subscribeNoop = () => () => {};
@@ -54,6 +55,7 @@ export function AgentKeys() {
 
       <div className="mt-8 max-w-2xl space-y-6 pb-10">
         <AgentReviewSetting />
+        <AgentChatSetting />
         <h2 className="pt-4 text-xs font-medium text-ink-faint">المفاتيح</h2>
         <CreateKeyForm
           onCreated={(created) => {

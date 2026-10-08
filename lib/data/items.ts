@@ -97,6 +97,29 @@ export async function addUserNote(uid: string, item: ItemDoc, text: string) {
   await updateDoc(doc(itemsCol(uid), item.id), { notes: arrayUnion(note), ...touch });
 }
 
+/** Asks the built-in agent (Claude) to answer the latest note on a reference. */
+export function askAgent(id: string) {
+  return callApi("/api/notes/reply", { itemId: id });
+}
+
+let chatConfigured: Promise<boolean> | undefined;
+
+/** Whether this deployment can answer notes (ANTHROPIC_API_KEY set). Asked once per session. */
+export function useAgentChatConfigured(): boolean | undefined {
+  const [configured, setConfigured] = useState<boolean>();
+  useEffect(() => {
+    chatConfigured ??= callApi<{ configured: boolean }>("/api/notes/reply")
+      .then((r) => r.configured)
+      .catch(() => false);
+    let live = true;
+    void chatConfigured.then((value) => live && setConfigured(value));
+    return () => {
+      live = false;
+    };
+  }, []);
+  return configured;
+}
+
 export async function removeNote(uid: string, id: string, note: ItemNote) {
   await updateDoc(doc(itemsCol(uid), id), { notes: arrayRemove(note), ...touch });
 }
