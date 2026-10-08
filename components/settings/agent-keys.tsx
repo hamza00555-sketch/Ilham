@@ -105,7 +105,7 @@ function CreateKeyForm({ onCreated }: { onCreated: (created: { key: string; name
     <form onSubmit={submit} className="flex gap-2">
       <input
         name="key-name"
-        dir="auto"
+        dir={name ? "auto" : "rtl"}
         autoComplete="off"
         maxLength={40}
         placeholder="اسم الوكيل، مثلاً Codex أو ChatGPT"

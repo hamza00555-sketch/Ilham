@@ -122,7 +122,7 @@ function AddForm({ prefill, onDone }: { prefill?: AddPrefill; onDone: () => void
             autoComplete="off"
             placeholder="مثلاً: VR Onboarding"
             className={inputClass}
-            dir="auto"
+            dir={newName ? "auto" : "rtl"}
           />
         </Field>
       ) : null}

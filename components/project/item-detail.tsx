@@ -761,7 +761,7 @@ function NoteComposer({ item, onSent }: { item: ItemDoc; onSent: () => void }) {
           ref={field}
           name="note"
           rows={1}
-          dir="auto"
+          dir={text ? "auto" : "rtl"}
           maxLength={2000}
           value={text}
           onChange={(e) => setText(e.target.value)}

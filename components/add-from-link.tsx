@@ -180,7 +180,7 @@ export function AddFromLink() {
               placeholder="مشروع جديد…"
               aria-label="اسم مشروع جديد"
               className={inputClass}
-              dir="auto"
+              dir={newName ? "auto" : "rtl"}
             />
             <Button
               variant="secondary"
