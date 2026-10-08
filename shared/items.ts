@@ -19,6 +19,8 @@ export interface BuildItemOptions {
   note?: string | null;
   /** The agent's key name, shown on its notes. */
   agentName?: string | null;
+  /** Agent picks only: false adds them straight to the project instead of the Inbox. */
+  review?: boolean;
 }
 
 export interface CreditsInput {
@@ -80,8 +82,8 @@ export async function buildItem(
     colorBuckets: [],
     searchTokens: [],
     tags: cleanTags(opts.tags),
-    // Agent picks wait in the Inbox until you keep them.
-    status: addedBy === "agent" ? "inbox" : "kept",
+    // Agent picks wait in the Inbox until you keep them, unless review is off for the project.
+    status: addedBy === "agent" && opts.review !== false ? "inbox" : "kept",
     ingest: "queued",
     ingestError: null,
     hints,

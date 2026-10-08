@@ -1,19 +1,32 @@
 "use client";
 
-import { MoreHorizontal, Pencil, Trash2 } from "lucide-react";
+import { Inbox, MoreHorizontal, Pencil, Trash2 } from "lucide-react";
 import { useRouter } from "next/navigation";
 import { useState, type FormEvent } from "react";
 import { toast } from "sonner";
-import { deleteProject, renameProject, type ProjectDoc } from "@/lib/data/projects";
+import { keepInbox } from "@/lib/data/items";
+import { deleteProject, renameProject, setProjectAgentReview, type ProjectDoc } from "@/lib/data/projects";
 import { friendlyError } from "@/lib/errors";
-import { cn } from "@/lib/ui";
+import { cn, countLabel } from "@/lib/ui";
+import { reviewsAgentPicks } from "@/shared/types";
 import { useShell } from "../shell/shell-context";
 import { Button } from "../ui/button";
 import { Dialog, Field, inputClass } from "../ui/dialog";
-import { Menu, MenuContent, MenuItem, MenuSeparator, MenuTrigger } from "../ui/menu";
+import {
+  Menu,
+  MenuContent,
+  MenuItem,
+  MenuRadioGroup,
+  MenuRadioItem,
+  MenuSeparator,
+  MenuSub,
+  MenuSubContent,
+  MenuSubTrigger,
+  MenuTrigger,
+} from "../ui/menu";
 
 /**
- * Rename / delete. `trigger="overlay"` is the quiet dot that sits on a cover (home grid);
+ * Rename, agent review, delete. `trigger="overlay"` is the quiet dot that sits on a cover (home grid);
  * `leaveOnDelete` sends you home when deleting the project you're inside.
  */
 export function ProjectMenu({
@@ -28,7 +41,7 @@ export function ProjectMenu({
   className?: string;
 }) {
   const router = useRouter();
-  const { uid } = useShell();
+  const { uid, agentSettings } = useShell();
   const [renaming, setRenaming] = useState(false);
   const [deleting, setDeleting] = useState(false);
   const [busy, setBusy] = useState(false);
@@ -71,6 +84,7 @@ export function ProjectMenu({
           <MenuItem icon={<Pencil />} onSelect={() => setRenaming(true)}>
             إعادة تسمية
           </MenuItem>
+          <AgentReviewMenu project={project} uid={uid} accountReview={agentSettings?.review ?? true} />
           <MenuSeparator />
           <MenuItem icon={<Trash2 />} danger onSelect={() => setDeleting(true)}>
             حذف المشروع
@@ -98,6 +112,52 @@ export function ProjectMenu({
         </div>
       </Dialog>
     </>
+  );
+}
+
+/** Where this project's agent picks go: the Inbox for review, straight in, or the account default. */
+function AgentReviewMenu({ project, uid, accountReview }: { project: ProjectDoc; uid: string; accountReview: boolean }) {
+  const value = project.agentReview ?? "default";
+
+  const change = async (next: string) => {
+    const mode = next === "on" || next === "off" ? next : null;
+    try {
+      await setProjectAgentReview(uid, project.id, mode);
+      const reviewing = reviewsAgentPicks({ agentReview: mode }, { review: accountReview });
+      const waiting = project.counts?.inbox ?? 0;
+      if (!reviewing && waiting > 0) {
+        toast("صار الوكيل يضيف مباشرة", {
+          description: `فيه ${countLabel(waiting)} تنتظر في الوارد.`,
+          action: {
+            label: "احتفظ فيها",
+            onClick: () => void keepInbox(uid, project.id).catch((err) => toast.error("ما قدرنا نحفظها", { description: friendlyError(err) })),
+          },
+        });
+      } else {
+        toast(reviewing ? "اقتراحات الوكيل بتوقف في الوارد" : "صار الوكيل يضيف مباشرة");
+      }
+    } catch (err) {
+      toast.error("ما قدرنا نحفظ الإعداد", { description: friendlyError(err) });
+    }
+  };
+
+  return (
+    <MenuSub>
+      <MenuSubTrigger icon={<Inbox />}>اقتراحات الوكيل</MenuSubTrigger>
+      <MenuSubContent className="w-64">
+        <MenuRadioGroup value={value} onValueChange={(next) => void change(next)}>
+          <MenuRadioItem value="default" hint={accountReview ? "حالياً: توقف في الوارد" : "حالياً: تنضاف مباشرة"}>
+            حسب الإعداد العام
+          </MenuRadioItem>
+          <MenuRadioItem value="on" hint="توقف لين تحتفظ فيها أو ترميها">
+            راجعها في الوارد
+          </MenuRadioItem>
+          <MenuRadioItem value="off" hint="تنضاف للمراجع وعليها ✦">
+            أضفها مباشرة
+          </MenuRadioItem>
+        </MenuRadioGroup>
+      </MenuSubContent>
+    </MenuSub>
   );
 }
 

@@ -10,6 +10,7 @@ import { cn, relativeTime } from "@/lib/ui";
 import { Spark } from "../ui/brand";
 import { Button } from "../ui/button";
 import { Dialog, inputClass } from "../ui/dialog";
+import { AgentReviewSetting } from "./agent-review";
 
 const subscribeNoop = () => () => {};
 /** The site's own origin, for setup snippets (stable after hydration). */
@@ -44,14 +45,16 @@ export function AgentKeys() {
         المشاريع
       </Link>
       <header className="mt-2 max-w-2xl md:mt-0">
-        <h1 className="font-arabic text-3xl font-semibold tracking-tight md:text-[40px]">مفاتيح الوكلاء</h1>
+        <h1 className="font-arabic text-3xl font-semibold tracking-tight md:text-[40px]">الوكلاء</h1>
         <p className="mt-3 text-[15px] leading-7 text-ink-muted">
-          أعطِ المفتاح لكوديكس أو كلود، ويضيف مراجع لمشاريعك مباشرة بدون متصفح ولا تسجيل دخول. كل اللي يضيفه يوصل{" "}
-          <span className="text-signal">✦ للوارد</span> في المشروع، وأنت تقرر وش يبقى.
+          أعطِ المفتاح لكوديكس أو كلود، ويضيف مراجع لمشاريعك مباشرة بدون متصفح ولا تسجيل دخول. وأنت تقرر: يوقف اللي
+          يضيفه في <span className="text-signal">✦ الوارد</span> لين توافق، أو ينضاف على طول.
         </p>
       </header>
 
       <div className="mt-8 max-w-2xl space-y-6 pb-10">
+        <AgentReviewSetting />
+        <h2 className="pt-4 text-xs font-medium text-ink-faint">المفاتيح</h2>
         <CreateKeyForm
           onCreated={(created) => {
             setFresh(created);

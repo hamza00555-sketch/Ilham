@@ -5,15 +5,18 @@ import { createContext, useCallback, useContext, useEffect, useMemo, useRef, use
 import { toast } from "sonner";
 import { addItem } from "@/lib/data/items";
 import { useProjects, type ProjectDoc } from "@/lib/data/projects";
+import { useAgentSettings } from "@/lib/data/settings";
 import { friendlyError } from "@/lib/errors";
 import { extractUrl, InvalidUrlError, titleFromUrl } from "@/shared/normalize";
-import type { IngestHints } from "@/shared/types";
+import type { AgentSettings, IngestHints } from "@/shared/types";
 import { AddDialog, type AddPrefill } from "./add-dialog";
 import { DropOverlay } from "./drop-overlay";
 
 interface Shell {
   uid: string;
   projects: ProjectDoc[] | undefined;
+  /** Account-wide agent preferences (review on by default). */
+  agentSettings: AgentSettings | undefined;
   /** The project the user is looking at; paste/drop goes straight into it. */
   currentProject: ProjectDoc | null;
   setCurrentProjectId: (id: string | null) => void;
@@ -36,6 +39,7 @@ export function useShell(): Shell {
 export function ShellProvider({ uid, children }: { uid: string; children: ReactNode }) {
   const router = useRouter();
   const projects = useProjects(uid);
+  const agentSettings = useAgentSettings(uid);
   const [currentProjectId, setCurrentProjectId] = useState<string | null>(null);
   const [dialog, setDialog] = useState<{ open: boolean; prefill?: AddPrefill }>({ open: false });
 
@@ -103,8 +107,8 @@ export function ShellProvider({ uid, children }: { uid: string; children: ReactN
   }, []);
 
   const value = useMemo<Shell>(
-    () => ({ uid, projects, currentProject, setCurrentProjectId, openAdd, addTo }),
-    [uid, projects, currentProject, openAdd, addTo],
+    () => ({ uid, projects, agentSettings, currentProject, setCurrentProjectId, openAdd, addTo }),
+    [uid, projects, agentSettings, currentProject, openAdd, addTo],
   );
 
   return (

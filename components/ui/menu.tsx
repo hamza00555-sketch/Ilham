@@ -1,6 +1,6 @@
 "use client";
 
-import { ChevronLeft } from "lucide-react";
+import { Check, ChevronLeft } from "lucide-react";
 import { DropdownMenu as M } from "radix-ui";
 import type { ComponentProps, ReactNode } from "react";
 import { cn } from "@/lib/ui";
@@ -63,3 +63,33 @@ export function MenuSubContent({ className, ...props }: ComponentProps<typeof M.
 }
 
 export const MenuSeparator = () => <M.Separator className="my-1 h-px bg-line" />;
+
+export const MenuRadioGroup = M.RadioGroup;
+
+/** A choice in a radio group: the check sits at the start, the hint under the label. */
+export function MenuRadioItem({
+  children,
+  hint,
+  className,
+  ...props
+}: ComponentProps<typeof M.RadioItem> & { hint?: ReactNode }) {
+  return (
+    <M.RadioItem
+      className={cn(
+        "flex cursor-default items-start gap-2.5 rounded-lg px-2.5 py-2 text-sm text-ink outline-none select-none focus-visible:outline-none data-[highlighted]:bg-hover",
+        className,
+      )}
+      {...props}
+    >
+      <span className="mt-0.5 grid size-4 shrink-0 place-items-center">
+        <M.ItemIndicator>
+          <Check className="size-4" />
+        </M.ItemIndicator>
+      </span>
+      <span className="min-w-0">
+        {children}
+        {hint ? <span className="mt-0.5 block text-xs text-ink-faint">{hint}</span> : null}
+      </span>
+    </M.RadioItem>
+  );
+}

@@ -4,7 +4,7 @@ import { after } from "next/server";
 import { buildItem, cleanTags, creditFields, isWebUrl, makeNote, MAX_NOTES, type CreditsInput } from "@/shared/items";
 import { searchTokens } from "@/shared/normalize";
 import { slugify } from "@/shared/slug";
-import type { Item, ItemNote, ItemStatus, Project } from "@/shared/types";
+import { reviewsAgentPicks, type AgentSettings, type Item, type ItemNote, type ItemStatus, type Project } from "@/shared/types";
 import { HttpError } from "../auth";
 import { admin } from "../firebase-admin";
 import { runIngest } from "../ingest/run";
@@ -12,7 +12,8 @@ import { syncProjects } from "../stats";
 
 /**
  * What agents can do, shared by REST v1 and the MCP server. Everything is scoped to the key's
- * owner, and agent picks always land in the project's Inbox for you to keep or discard.
+ * owner. Agent picks land in the project's Inbox for you to keep or discard, unless you turned
+ * review off (for the account, or for that project); then they join the project directly.
  */
 
 export const MAX_BATCH = 50;
@@ -21,22 +22,30 @@ const INGEST_CONCURRENCY = 4;
 const iso = (t: unknown) => (t as Timestamp | undefined)?.toDate?.().toISOString() ?? null;
 const col = (uid: string, name: "projects" | "items" | "agentRuns") => admin().db.collection(`users/${uid}/${name}`);
 
+async function agentSettings(uid: string): Promise<Partial<AgentSettings> | null> {
+  const snap = await admin().db.doc(`users/${uid}/settings/agent`).get();
+  return snap.exists ? (snap.data() as Partial<AgentSettings>) : null;
+}
+
 export interface ProjectSummary {
   slug: string;
   name: string;
   description: string | null;
   brief: Record<string, unknown>;
   counts: { kept: number; inbox: number };
+  /** true: your picks wait in the Inbox for the user. false: they join the project directly. */
+  review: boolean;
   url: string;
 }
 
-function summarize(p: Project, origin: string): ProjectSummary {
+function summarize(p: Project, origin: string, settings: Partial<AgentSettings> | null): ProjectSummary {
   return {
     slug: p.slug,
     name: p.name,
     description: p.description,
     brief: p.brief ?? {},
     counts: p.counts ?? { kept: 0, inbox: 0 },
+    review: reviewsAgentPicks(p, settings),
     url: `${origin}/p/${p.slug}`,
   };
 }
@@ -49,8 +58,8 @@ async function projectBySlug(uid: string, slug: string) {
 }
 
 export async function listProjects(uid: string, origin: string): Promise<ProjectSummary[]> {
-  const snap = await col(uid, "projects").orderBy("updatedAt", "desc").get();
-  return snap.docs.map((d) => summarize(d.data() as Project, origin));
+  const [snap, settings] = await Promise.all([col(uid, "projects").orderBy("updatedAt", "desc").get(), agentSettings(uid)]);
+  return snap.docs.map((d) => summarize(d.data() as Project, origin, settings));
 }
 
 export async function createProject(
@@ -78,7 +87,7 @@ export async function createProject(
     counts: { kept: 0, inbox: 0 },
   };
   await col(uid, "projects").add({ ...project, createdAt: FieldValue.serverTimestamp(), updatedAt: FieldValue.serverTimestamp() });
-  return summarize(project as Project, origin);
+  return summarize(project as Project, origin, await agentSettings(uid));
 }
 
 type ItemSummary = {
@@ -127,11 +136,14 @@ async function itemsWithStatus(uid: string, projectId: string, status: ItemStatu
 /** The project, its brief, and what's already in it (so an agent doesn't suggest it again). */
 export async function getProject(uid: string, origin: string, slug: string) {
   const { id, project } = await projectBySlug(uid, slug);
-  const [kept, inbox, discarded] = await Promise.all(
-    (["kept", "inbox", "discarded"] as const).map((s) => itemsWithStatus(uid, id, s, 40)),
-  );
+  const [kept, inbox, discarded, settings] = await Promise.all([
+    itemsWithStatus(uid, id, "kept", 40),
+    itemsWithStatus(uid, id, "inbox", 40),
+    itemsWithStatus(uid, id, "discarded", 40),
+    agentSettings(uid),
+  ]);
   return {
-    ...summarize(project, origin),
+    ...summarize(project, origin, settings),
     recent: kept.slice(0, 20),
     knownUrls: [...kept, ...inbox, ...discarded].map((i) => i.url),
   };
@@ -173,6 +185,13 @@ export interface AgentItemInput extends CreditsInput {
 
 export type AddOutcome = { url: string; id?: string; status: "queued" | "duplicate" | "invalid" };
 
+export interface AddResult {
+  project: string;
+  /** Where new picks went: "inbox" (the user reviews them) or "kept" (review is off here). */
+  landedIn: "inbox" | "kept";
+  results: AddOutcome[];
+}
+
 /**
  * Adds up to 50 picks to the project's Inbox. Agent-supplied fields are only hints: the server
  * fetches the page itself, so previews are right even when the agent is wrong. Processing runs
@@ -184,10 +203,11 @@ export async function addItems(
   items: AgentItemInput[],
   runId?: string | null,
   agentName: string | null = null,
-): Promise<{ project: string; results: AddOutcome[] }> {
+): Promise<AddResult> {
   if (!items.length) throw new HttpError(400, "no-items");
   if (items.length > MAX_BATCH) throw new HttpError(400, "too-many-items");
-  const { id: projectId } = await projectBySlug(uid, slug);
+  const [{ id: projectId, project }, settings] = await Promise.all([projectBySlug(uid, slug), agentSettings(uid)]);
+  const review = reviewsAgentPicks(project, settings);
   const { db } = admin();
 
   const results: AddOutcome[] = [];
@@ -207,6 +227,7 @@ export async function addItems(
       credits: input,
       note: input.note,
       agentName,
+      review,
     });
     try {
       await db.doc(`users/${uid}/items/${id}`).create({
@@ -233,7 +254,7 @@ export async function addItems(
     }
     after(() => ingestAll(uid, queued));
   }
-  return { project: slug, results };
+  return { project: slug, landedIn: review ? "inbox" : "kept", results };
 }
 
 async function ingestAll(uid: string, ids: string[]) {

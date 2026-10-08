@@ -222,6 +222,19 @@ export async function keepAll(uid: string, items: ItemDoc[]) {
   syncProjects(items.map((i) => i.projectId));
 }
 
+/** Keeps everything waiting in a project's Inbox (when review is turned off for it). Returns how many. */
+export async function keepInbox(uid: string, projectId: string): Promise<number> {
+  const snap = await getDocs(
+    query(itemsCol(uid), where("projectId", "==", projectId), where("status", "==", "inbox"), limit(400)),
+  );
+  if (snap.empty) return 0;
+  const batch = writeBatch(firebase().db);
+  snap.docs.forEach((d) => batch.update(d.ref, { status: "kept", ...touch }));
+  await batch.commit();
+  syncProjects([projectId]);
+  return snap.size;
+}
+
 export async function deleteItem(uid: string, id: string) {
   await deleteDoc(doc(itemsCol(uid), id));
   syncProjects([projectOf(id)]);

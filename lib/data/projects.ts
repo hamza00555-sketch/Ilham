@@ -83,6 +83,12 @@ export async function createProject(uid: string, name: string): Promise<{ id: st
   return { id: ref.id, slug };
 }
 
+/** Agent picks for this project: "on" waits in the Inbox, "off" joins directly, null follows the account. */
+export function setProjectAgentReview(uid: string, projectId: string, mode: "on" | "off" | null) {
+  // No updatedAt: a preference shouldn't move the project to the top of the list.
+  return updateDoc(doc(projectsCol(uid), projectId), { agentReview: mode });
+}
+
 export function renameProject(uid: string, projectId: string, name: string) {
   return updateDoc(doc(projectsCol(uid), projectId), { name: name.trim(), updatedAt: serverTimestamp() });
 }

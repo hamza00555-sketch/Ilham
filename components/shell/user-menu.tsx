@@ -28,7 +28,7 @@ export function UserMenu({ children, align = "start" }: { children: ReactNode; a
             أضف من أي موقع
           </MenuItem>
           <MenuItem icon={<KeyRound />} onSelect={() => router.push("/settings")}>
-            مفاتيح الوكلاء
+            الوكلاء
           </MenuItem>
           <MenuItem icon={<LogOut />} onSelect={() => void signOut()}>
             تسجيل خروج

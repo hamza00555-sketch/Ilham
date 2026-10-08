@@ -237,6 +237,9 @@ The reference up close, at `?ref=<id>` so Back closes it. Desktop: a 1320px max 
 - **Notes:** agents sign with their key name beside a lime ✦; your notes carry your avatar and can be deleted. Long-form text aligns to its own language's start edge; one-line titles stay on the UI's edge.
 - **Keys:** ← next, → previous (right-to-left), Esc closes; Enter sends a note on desktop, Shift+Enter breaks the line.
 
+### Switches
+A 48×28 pill: off is a hover-gray track with a muted thumb resting at the start edge (right); on is an ink track with a table-black thumb at the end. Labelled by its row's title and described by its line of copy, which states what happens in the current position.
+
 ### Inputs / Fields
 - **Style:** 44px tall, table-black well, strong hairline, 12px radius, 15px text.
 - **Focus:** the border brightens to ink (no extra outline ring; the global focus ring lives in the base layer so this can replace it).

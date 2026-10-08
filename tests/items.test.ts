@@ -48,3 +48,17 @@ describe("cleanTags / cleanHints / isWebUrl", () => {
     expect(isWebUrl("not a url")).toBe(false);
   });
 });
+
+describe("agent review setting", () => {
+  it("the project's choice wins over the account default, which defaults to review", async () => {
+    const { reviewsAgentPicks } = await import("@/shared/types");
+    expect(reviewsAgentPicks({})).toBe(true);
+    expect(reviewsAgentPicks({ agentReview: null }, { review: false })).toBe(false);
+    expect(reviewsAgentPicks({ agentReview: "on" }, { review: false })).toBe(true);
+    expect(reviewsAgentPicks({ agentReview: "off" }, { review: true })).toBe(false);
+  });
+  it("with review off, agent picks join the project directly, still marked as the agent's", async () => {
+    const { item } = await buildItem("p", "https://linear.app/", { addedBy: "agent", review: false });
+    expect(item).toMatchObject({ status: "kept", addedBy: "agent" });
+  });
+});

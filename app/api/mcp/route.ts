@@ -24,7 +24,7 @@ import {
 import { HttpError } from "@/server/auth";
 
 // Same as REST v1, as MCP tools. Connect with the URL of this route and
-// `Authorization: Bearer ilham_sk_…` (Settings → مفاتيح الوكلاء).
+// `Authorization: Bearer ilham_sk_…` (Settings → الوكلاء).
 export const maxDuration = 300;
 
 const slug = z.string().min(1).max(64).describe("Project slug, from list_projects.");
@@ -52,7 +52,7 @@ const handler = createMcpHandler(
       "list_projects",
       {
         title: "List projects",
-        description: "All of the user's Ilham projects with their slug, brief and counts. Start here.",
+        description: "All of the user's Ilham projects with their slug, brief, counts and review (whether your picks wait in the Inbox). Start here.",
         inputSchema: z.object({}),
         annotations: { readOnlyHint: true },
       },
@@ -97,7 +97,7 @@ const handler = createMcpHandler(
       {
         title: "Add inspiration",
         description:
-          "Adds up to 50 references to a project's Inbox in one batch; the user keeps or discards them. Send the creator's original page as url, plus imageUrl when you have a direct high-res image, 3-5 namespaced tags, and a one-sentence reason tied to the brief. Include the credits you found: creator, creatorUrl (their portfolio), publishedAt, tools (software used) and process (how it was made). Duplicates are skipped automatically.",
+          "Adds up to 50 references to a project in one batch. They wait in the project's Inbox for the user to keep or discard, unless the user turned review off for it (the project's `review` is false); then they join the project directly, still marked as yours. Send the creator's original page as url, plus imageUrl when you have a direct high-res image, 3-5 namespaced tags, and a one-sentence reason tied to the brief. Include the credits you found: creator, creatorUrl (their portfolio), publishedAt, tools (software used) and process (how it was made). Duplicates are skipped automatically.",
         inputSchema: addItemsInput.extend({ project: slug }),
       },
       async ({ project, items, agentRunId }, ctx) =>

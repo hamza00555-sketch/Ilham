@@ -110,8 +110,23 @@ export interface Project {
   shareToken: string | null;
   cover: CoverTile[];
   counts: { kept: number; inbox: number };
+  /** Whether agent picks wait in the Inbox here: "on", "off", or unset to follow the account default. */
+  agentReview?: "on" | "off" | null;
   createdAt: unknown;
   updatedAt: unknown;
+}
+
+/** Account-wide agent preferences: users/{uid}/settings/agent. */
+export interface AgentSettings {
+  /** Agent picks wait in the Inbox for you to keep or discard. Default: true. */
+  review: boolean;
+}
+
+/** Do agent picks wait in this project's Inbox? The project's own choice wins over the account default. */
+export function reviewsAgentPicks(project: Pick<Project, "agentReview">, settings?: Partial<AgentSettings> | null): boolean {
+  if (project.agentReview === "on") return true;
+  if (project.agentReview === "off") return false;
+  return settings?.review ?? true;
 }
 
 export const itemId = (projectId: string, urlHash: string) => `${projectId}__${urlHash}`;

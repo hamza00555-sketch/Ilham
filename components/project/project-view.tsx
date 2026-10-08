@@ -10,7 +10,7 @@ import { friendlyError } from "@/lib/errors";
 import { usePasteShortcut } from "@/lib/keys";
 import type { ProjectDoc } from "@/lib/data/projects";
 import { cn, countLabel, PLATFORMS } from "@/lib/ui";
-import type { Platform } from "@/shared/types";
+import { reviewsAgentPicks, type Platform } from "@/shared/types";
 import { useShell } from "../shell/shell-context";
 import { Button } from "../ui/button";
 import { Spark } from "../ui/brand";
@@ -34,7 +34,8 @@ export function ProjectView() {
 }
 
 function ProjectBoard({ project }: { project: ProjectDoc }) {
-  const { openAdd } = useShell();
+  const { openAdd, agentSettings } = useShell();
+  const directAdds = agentSettings ? !reviewsAgentPicks(project, agentSettings) : false;
   const inboxCount = project.counts?.inbox ?? 0;
   const keptCount = project.counts?.kept ?? 0;
   const [tab, setTab] = useState<"kept" | "inbox">("kept");
@@ -57,6 +58,13 @@ function ProjectBoard({ project }: { project: ProjectDoc }) {
             <p className="mt-2 text-sm text-ink-muted">
               {countLabel(keptCount)}
               {project.description ? <span className="text-ink-faint"> · {project.description}</span> : null}
+              {/* Review is off here: say so, since nothing will wait in the Inbox. */}
+              {directAdds ? (
+                <span className="text-ink-faint">
+                  {" · "}
+                  <Spark className="inline size-2.5 align-baseline text-signal" /> الوكيل يضيف مباشرة
+                </span>
+              ) : null}
             </p>
           </div>
           <div className="flex shrink-0 gap-2">
